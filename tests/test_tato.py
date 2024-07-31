@@ -39,14 +39,14 @@ class TestMultipass(CodemodTest):
             class Two(One):
                 pass
                 
-            def c():
-                pass
-                
+            def a():
+                b()
+
             def b():
                 c()
 
-            def a():
-                b()
+            def c():
+                pass
         """
 
         self.assertCodemod(before, after)

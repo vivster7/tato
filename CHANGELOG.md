@@ -8,6 +8,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 
+## [0.0.3] - 2024-07-30
+
+### Changed
+- Order functions by leafs last.
+- Secondarily order nodes by their first access.
+
+
 ## [0.0.2] - 2024-07-30
 
 ### Changed

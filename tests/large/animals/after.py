@@ -1,5 +1,5 @@
-import random
 from typing import TYPE_CHECKING
+import random
 
 if TYPE_CHECKING:
     from typing import List
@@ -32,27 +32,6 @@ class Bird(Animal):
         return "Tweet!"
 
 
-def find_oldest_animal(animals: List[Animal]) -> Animal:
-    oldest = max(animals, key=lambda animal: animal.age)
-    return oldest
-
-
-def print_animal_sounds(animals: List[Animal]):
-    for animal in animals:
-        print(f"{animal.name} says {animal.speak()}")
-
-
-def generate_random_animals(num_animals: int) -> List[Animal]:
-    animals = []
-    for _ in range(num_animals):
-        animal_type = random.choice([Dog, Cat, Bird])
-        name = random.choice(["Max", "Bella", "Charlie", "Molly", "Buddy", "Luna"])
-        age = random.randint(1, 15)
-        animal = animal_type(name, age)
-        animals.append(animal)
-    return animals
-
-
 def main():
     random.seed(42)  # For reproducible results
     num_animals = 10
@@ -69,6 +48,27 @@ def main():
     print(
         f"\nThe oldest animal is {oldest_animal.name}, who is {oldest_animal.age} years old."
     )
+
+
+def generate_random_animals(num_animals: int) -> List[Animal]:
+    animals = []
+    for _ in range(num_animals):
+        animal_type = random.choice([Dog, Cat, Bird])
+        name = random.choice(["Max", "Bella", "Charlie", "Molly", "Buddy", "Luna"])
+        age = random.randint(1, 15)
+        animal = animal_type(name, age)
+        animals.append(animal)
+    return animals
+
+
+def print_animal_sounds(animals: List[Animal]):
+    for animal in animals:
+        print(f"{animal.name} says {animal.speak()}")
+
+
+def find_oldest_animal(animals: List[Animal]) -> Animal:
+    oldest = max(animals, key=lambda animal: animal.age)
+    return oldest
 
 
 if __name__ == "__main__":
