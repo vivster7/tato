@@ -1,8 +1,8 @@
 from collections import defaultdict, deque
-from typing import Mapping, cast
+from typing import Mapping, Union, cast
 
 import libcst as cst
-from libcst import CSTNode, codemod
+from libcst import codemod
 from libcst.metadata import (
     Assignment,
     CodeRange,
@@ -12,6 +12,9 @@ from libcst.metadata import (
     Scope,
     ScopeProvider,
 )
+
+# Type of a node found in a module's body.
+TopLevelNode = Union[cst.SimpleStatementLine, cst.BaseCompoundStatement]
 
 # Expected to be larger than any possible line number.
 LARGE_NUM = 10_000_000
@@ -62,7 +65,7 @@ class ReorderFileCodemod(codemod.VisitorBasedCodemodCommand):
 
 def create_graph(
     module: cst.Module, metadata: Mapping[ProviderT, Mapping[cst.CSTNode, object]]
-) -> tuple[dict[cst.CSTNode, set[cst.CSTNode]], dict[cst.CSTNode, tuple[int, int]]]:
+) -> tuple[dict[TopLevelNode, set[TopLevelNode]], dict[TopLevelNode, tuple[int, int]]]:
     """Create a graph of definitions (assignments)
 
     :: returns:
@@ -92,17 +95,17 @@ def create_graph(
     parents = cast(Mapping[cst.CSTNode, cst.CSTNode], metadata[ParentNodeProvider])
     positions = cast(Mapping[cst.CSTNode, CodeRange], metadata[PositionProvider])
 
-    modulebodyset: set = set(module.body)
+    modulebodyset: set[TopLevelNode] = set(module.body)
     globalscope = next((s.globals for s in scopes if s is not None))
 
-    def find_parent(node: cst.CSTNode) -> cst.CSTNode:
+    def find_parent(node: cst.CSTNode) -> TopLevelNode:
         """Find the `cst.Module.body` that contains the given node."""
         while node not in modulebodyset:
             node = parents[node]
-        return node
+        return cast(TopLevelNode, node)
 
-    graph: dict[cst.CSTNode, list[cst.CSTNode]] = {}
-    first_access: dict[cst.CSTNode, tuple[int, int]] = defaultdict(
+    graph: dict[TopLevelNode, list[TopLevelNode]] = {}
+    first_access: dict[TopLevelNode, tuple[int, int]] = defaultdict(
         lambda: (10_000_000, 10_000_000)
     )
     for node in module.body:
@@ -150,9 +153,9 @@ def create_graph(
 
 
 def topological_sort(
-    graph: dict[cst.CSTNode, set[cst.CSTNode]],
-    first_access: dict[cst.CSTNode, tuple[int, int]],
-) -> list[cst.CSTNode]:
+    graph: dict[TopLevelNode, set[TopLevelNode]],
+    first_access: dict[TopLevelNode, tuple[int, int]],
+) -> list[TopLevelNode]:
     """
     Sorts a graph of definitions into a topological order.
 
@@ -161,7 +164,7 @@ def topological_sort(
     ['d', 'c', 'b', 'a']
     """
 
-    def sort_fn(node: cst.CSTNode) -> tuple[int, tuple[int, int]]:
+    def sort_fn(node: TopLevelNode) -> tuple[int, tuple[int, int]]:
         if isinstance(node, cst.SimpleStatementLine):
             if isinstance(node.body[0], (cst.Assign, cst.AnnAssign, cst.AugAssign)):
                 return 1, first_access[node]
@@ -181,7 +184,7 @@ def topological_sort(
             return 2, first_access[node]  # Unknown
 
     topo_sorted = []
-    innodes: defaultdict[CSTNode, int] = defaultdict(int)
+    innodes: defaultdict[TopLevelNode, int] = defaultdict(int)
     for src, dsts in graph.items():
         innodes[src]
         for dst in dsts:
@@ -203,7 +206,7 @@ def topological_sort(
 
 
 def categorize_nodes(
-    topo_sorted: list[cst.CSTNode],
+    topo_sorted: list[TopLevelNode],
 ) -> tuple[list[cst.SimpleStatementLine], list[list[cst.CSTNode]]]:
     """Categorize into: imports + sections.
 
