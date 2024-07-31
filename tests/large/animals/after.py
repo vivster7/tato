@@ -5,7 +5,13 @@ if TYPE_CHECKING:
     from typing import List
 
 
+def computed_property():
+    return 42
+
+
 class Animal:
+    num_legs = computed_property()
+
     def __init__(self, name: str, age: int):
         self.name = name
         self.age = age

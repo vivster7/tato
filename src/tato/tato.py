@@ -208,12 +208,30 @@ def categorize_nodes(
      - classes
      - functions
 
-    After we see a constant or unknown, we collect the following
-    consecutive constants/unknowns, then start a new section.
+    If a constant or class depends on a function, we'll start a new section. 
+    So each section will be ordered (constants, unknowns, classes, functions).
+
+    Example:
+    ```
+    def computed_num():
+      return 42
+
+    ## End Section; Start a new section.
+
+    class A:
+      num = computed_num()
+    ```
+
+    Since `A` depends on `computed_num`, we'll see the function first in `topo_sorted`.
+    Then, when we see `A`, we'll start a new section, so class `A` will be writen after
+    `computed_num` (even though we generally try and put classes before functions, if
+    there are no dependencies between them)
     """
     imports, sections = [], []
     constants, unknowns, classes, functions = [], [], [], []
 
+    seen_classes = False
+    seen_functions = False
     i = 0
     while i < len(topo_sorted):
         node = topo_sorted[i]
@@ -222,8 +240,11 @@ def categorize_nodes(
         if category == "imports":
             imports.append(node)
         elif category == "constants" or category == "unknown":
-            sections.extend(constants + unknowns + classes + functions)
-            constants, unknowns, classes, functions = [], [], [], []
+            if seen_classes or seen_functions:
+                sections.extend(constants + unknowns + classes + functions)
+                constants, unknowns, classes, functions = [], [], [], []
+                seen_classes = False
+                seen_functions = False
 
             if category == "constants":
                 constants.append(node)
@@ -231,9 +252,15 @@ def categorize_nodes(
                 unknowns.append(node)
 
         elif category == "classes":
+            if seen_functions:
+                sections.extend(constants + unknowns + classes + functions)
+                constants, unknowns, classes, functions = [], [], [], []
+                seen_functions = False
             classes.append(node)
+            seen_classes = True
         elif category == "functions":
             functions.insert(0, node)
+            seen_functions = True
         else:
             raise Exception(f"Unknown category: {category}")
 
