@@ -60,75 +60,6 @@ class ReorderFileCodemod(codemod.VisitorBasedCodemodCommand):
         return updated_node.with_changes(body=imports + sections)
 
 
-def categorize(node: cst.CSTNode):
-    if isinstance(node, cst.SimpleStatementLine):
-        if isinstance(node.body[0], (cst.Assign, cst.AnnAssign, cst.AugAssign)):
-            return "constants"
-        elif isinstance(node.body[0], (cst.Import, cst.ImportFrom)):
-            return "imports"
-        else:
-            return "unknown"
-    elif isinstance(node, (cst.ClassDef,)):
-        return "classes"
-    elif isinstance(node, (cst.FunctionDef,)):
-        return "functions"
-    else:
-        return "unknown"
-
-
-def topological_sort(
-    graph: dict[cst.CSTNode, set[cst.CSTNode]],
-    first_access: dict[cst.CSTNode, tuple[int, int]],
-) -> list[cst.CSTNode]:
-    """
-    Sorts a graph of definitions into a topological order.
-
-    Example:
-    >>> topological_sort({'a': {'b'}, 'b': {'c'}, 'c': set(), 'd': set()})
-    ['d', 'c', 'b', 'a']
-    """
-
-    def sort_fn(node: cst.CSTNode) -> tuple[int, tuple[int, int]]:
-        if isinstance(node, cst.SimpleStatementLine):
-            if isinstance(node.body[0], (cst.Assign, cst.AnnAssign, cst.AugAssign)):
-                return 1, first_access[node]
-            elif isinstance(node.body[0], (cst.Import, cst.ImportFrom)):
-                return 0, first_access[node]
-            else:
-                return 2, first_access[node]  # Unknown
-        elif isinstance(node, (cst.ClassDef,)):
-            return 3, first_access[node]
-        elif isinstance(node, (cst.FunctionDef,)):
-            # Functions get sorted by leaf last. To order by access first after the 'reversal', we multiply by -1
-            return (
-                4,
-                (first_access[node][0] * -1, first_access[node][1] * -1),
-            )
-        else:
-            return 2, first_access[node]  # Unknown
-
-    topo_sorted = []
-    innodes: defaultdict[CSTNode, int] = defaultdict(int)
-    for src, dsts in graph.items():
-        innodes[src]
-        for dst in dsts:
-            innodes[dst] += 1
-
-    queue = deque([node for node, count in innodes.items() if count == 0])
-    while queue:
-        # Sorting ensures we see constants/unknowns before classes and functions.
-        # This allows to use the end of constants/unkwns as a section end.
-        queue = deque(sorted(queue, key=sort_fn))
-        node = queue.popleft()
-        topo_sorted.append(node)
-        for dst in graph[node]:
-            innodes[dst] -= 1
-            if innodes[dst] == 0:
-                queue.append(dst)
-
-    return topo_sorted
-
-
 def create_graph(
     module: cst.Module, metadata: Mapping[ProviderT, Mapping[cst.CSTNode, object]]
 ) -> tuple[dict[cst.CSTNode, set[cst.CSTNode]], dict[cst.CSTNode, tuple[int, int]]]:
@@ -213,6 +144,59 @@ def create_graph(
     }, first_access
 
 
+def topological_sort(
+    graph: dict[cst.CSTNode, set[cst.CSTNode]],
+    first_access: dict[cst.CSTNode, tuple[int, int]],
+) -> list[cst.CSTNode]:
+    """
+    Sorts a graph of definitions into a topological order.
+
+    Example:
+    >>> topological_sort({'a': {'b'}, 'b': {'c'}, 'c': set(), 'd': set()})
+    ['d', 'c', 'b', 'a']
+    """
+
+    def sort_fn(node: cst.CSTNode) -> tuple[int, tuple[int, int]]:
+        if isinstance(node, cst.SimpleStatementLine):
+            if isinstance(node.body[0], (cst.Assign, cst.AnnAssign, cst.AugAssign)):
+                return 1, first_access[node]
+            elif isinstance(node.body[0], (cst.Import, cst.ImportFrom)):
+                return 0, first_access[node]
+            else:
+                return 2, first_access[node]  # Unknown
+        elif isinstance(node, (cst.ClassDef,)):
+            return 3, first_access[node]
+        elif isinstance(node, (cst.FunctionDef,)):
+            # Functions get sorted by leaf last. To order by access first after the 'reversal', we multiply by -1
+            return (
+                4,
+                (first_access[node][0] * -1, first_access[node][1] * -1),
+            )
+        else:
+            return 2, first_access[node]  # Unknown
+
+    topo_sorted = []
+    innodes: defaultdict[CSTNode, int] = defaultdict(int)
+    for src, dsts in graph.items():
+        innodes[src]
+        for dst in dsts:
+            innodes[dst] += 1
+
+    queue = deque([node for node, count in innodes.items() if count == 0])
+    while queue:
+        # Sorting ensures we see constants/unknowns before classes and functions.
+        # This allows to use the end of constants/unkwns as a section end.
+        queue = deque(sorted(queue, key=sort_fn))
+        node = queue.popleft()
+        topo_sorted.append(node)
+        for dst in graph[node]:
+            innodes[dst] -= 1
+            if innodes[dst] == 0:
+                queue.append(dst)
+
+    return topo_sorted
+
+
 def categorize_nodes(
     topo_sorted: list[cst.CSTNode],
 ) -> tuple[list[cst.SimpleStatementLine], list[list[cst.CSTNode]]]:
@@ -259,3 +243,19 @@ def categorize_nodes(
         sections.extend(constants + unknowns + classes + functions)
 
     return imports, sections
+
+
+def categorize(node: cst.CSTNode):
+    if isinstance(node, cst.SimpleStatementLine):
+        if isinstance(node.body[0], (cst.Assign, cst.AnnAssign, cst.AugAssign)):
+            return "constants"
+        elif isinstance(node.body[0], (cst.Import, cst.ImportFrom)):
+            return "imports"
+        else:
+            return "unknown"
+    elif isinstance(node, (cst.ClassDef,)):
+        return "classes"
+    elif isinstance(node, (cst.FunctionDef,)):
+        return "functions"
+    else:
+        return "unknown"
