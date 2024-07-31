@@ -26,9 +26,6 @@ class TestMultipass(CodemodTest):
 
             def c():
                 pass
-                
-            def d():
-                pass
         """
         after = """
             from x.y import z
@@ -45,9 +42,6 @@ class TestMultipass(CodemodTest):
             def c():
                 pass
                 
-            def d():
-                pass
-
             def b():
                 c()
 
