@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- Ignore self-edges; Fixes bug causing top-level nodes to disappear.
+
 
 ## [0.0.4] - 2024-07-31
 

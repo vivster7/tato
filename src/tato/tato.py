@@ -121,13 +121,18 @@ def create_graph(
                 ),
                 None,
             )
+            # Skip non-global assignments.
             if not globalassignment:
-                # Skip non-global assignments.
+                continue
+
+            assignment_parent = find_parent(globalassignment.node)
+            access_parent = find_parent(access.node)
+
+            # Skip self-edges.
+            if assignment_parent == access_parent:
                 continue
 
             # Create edge from assignment parent to access parent.
-            assignment_parent = find_parent(globalassignment.node)
-            access_parent = find_parent(access.node)
             graph[assignment_parent].append(access_parent)
 
             # Track first access of the assignment.
@@ -208,7 +213,7 @@ def categorize_nodes(
      - classes
      - functions
 
-    If a constant or class depends on a function, we'll start a new section. 
+    If a constant or class depends on a function, we'll start a new section.
     So each section will be ordered (constants, unknowns, classes, functions).
 
     Example:
@@ -286,3 +291,9 @@ def categorize(node: cst.CSTNode):
         return "functions"
     else:
         return "unknown"
+
+
+def _print_code(node: cst.CSTNode) -> None:
+    tree = cst.parse_module("")
+    tree = tree.with_changes(body=[node])
+    print(tree.code)
