@@ -8,6 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 
+## [0.0.4] - 2024-07-31
+
+### Fixed
+- Functions will correctly be sorted before classes is the function is used in the class scope.
+
+
 ## [0.0.3] - 2024-07-30
 
 ### Changed
