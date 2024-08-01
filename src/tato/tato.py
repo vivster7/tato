@@ -1,5 +1,5 @@
 from collections import defaultdict, deque
-from typing import Mapping, Union, cast
+from typing import Mapping, cast
 
 import libcst as cst
 from libcst import codemod
@@ -13,8 +13,7 @@ from libcst.metadata import (
     ScopeProvider,
 )
 
-# Type of a node found in a module's body.
-TopLevelNode = Union[cst.SimpleStatementLine, cst.BaseCompoundStatement]
+from .node import TopLevelNode
 
 # Expected to be larger than any possible line number.
 LARGE_NUM = 10_000_000
@@ -29,11 +28,11 @@ class ReorderFileCodemod(codemod.VisitorBasedCodemodCommand):
         3. Classes (leaf classes first)
         4. Functions (leaf functions last)
 
-    Somtimes constants may depend on classes/functions, so
-    those are defined before constants.
+    Somtimes constants may depend on classes/functions, so those are defined
+    before constants.
 
-    If there are multiple constants that depend on different
-    functions/classes, we'll get multiple layers that look like:
+    If there are multiple constants that depend on different functions/classes,
+    we'll get multiple layers that look like:
         1. Imports
         2. Classes/Functions
         3. Constants/Expressions that use #2
@@ -43,8 +42,8 @@ class ReorderFileCodemod(codemod.VisitorBasedCodemodCommand):
         8. Classes (leaf classes first)
         9. Functions (leaf functions last)
 
-    This autoformatting will be far from perfect. Manually edits
-    are encouraged. Or break up the file in to multiple files.
+    This autoformatting will be far from perfect. Manually edits are encouraged.
+    Or break up the file in to multiple files.
     """
 
     METADATA_DEPENDENCIES = (
@@ -106,7 +105,7 @@ def create_graph(
 
     graph: dict[TopLevelNode, list[TopLevelNode]] = {}
     first_access: dict[TopLevelNode, tuple[int, int]] = defaultdict(
-        lambda: (10_000_000, 10_000_000)
+        lambda: (LARGE_NUM, LARGE_NUM)
     )
     for node in module.body:
         graph[node] = []
@@ -238,8 +237,7 @@ def categorize_nodes(
     imports, sections = [], []
     constants, unknowns, classes, functions = [], [], [], []
 
-    seen_classes = False
-    seen_functions = False
+    largest_seen = -1
     i = 0
     while i < len(topo_sorted):
         node = topo_sorted[i]
@@ -248,27 +246,29 @@ def categorize_nodes(
         if category == "imports":
             imports.append(node)
         elif category == "constants" or category == "unknown":
-            if seen_classes or seen_functions:
+            if largest_seen > 1:
                 sections.extend(constants + unknowns + classes + functions)
                 constants, unknowns, classes, functions = [], [], [], []
-                seen_classes = False
-                seen_functions = False
-
-            if category == "constants":
-                constants.append(node)
-            elif category == "unknown":
-                unknowns.append(node)
-
+                largest_seen = -1
+            constants.append(node)
+            largest_seen = 1
+        elif category == "unknown":
+            if largest_seen > 2:
+                sections.extend(constants + unknowns + classes + functions)
+                constants, unknowns, classes, functions = [], [], [], []
+                largest_seen = -1
+            unknowns.append(node)
+            largest_seen = 2
         elif category == "classes":
-            if seen_functions:
+            if largest_seen > 3:
                 sections.extend(constants + unknowns + classes + functions)
                 constants, unknowns, classes, functions = [], [], [], []
-                seen_functions = False
+                largest_seen = -1
             classes.append(node)
-            seen_classes = True
+            largest_seen = 3
         elif category == "functions":
             functions.insert(0, node)
-            seen_functions = True
+            largest_seen = 4
         else:
             raise Exception(f"Unknown category: {category}")
 
