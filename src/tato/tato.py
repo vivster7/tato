@@ -1,4 +1,5 @@
-from collections import defaultdict, deque
+import heapq
+from collections import defaultdict
 from typing import Mapping, cast
 
 import libcst as cst
@@ -13,7 +14,9 @@ from libcst.metadata import (
     ScopeProvider,
 )
 
-from .node import TopLevelNode
+from tato._section import Section, SectionsBuilder
+
+from ._node import OrderedNode, TopLevelNode
 
 # Expected to be larger than any possible line number.
 LARGE_NUM = 10_000_000
@@ -55,16 +58,19 @@ class ReorderFileCodemod(codemod.VisitorBasedCodemodCommand):
     def leave_Module(
         self, original_node: cst.Module, updated_node: cst.Module
     ) -> cst.Module:
-        graph, first_access = create_graph(original_node, self.metadata)
-        topo_sorted = topological_sort(graph, first_access)
+        graph = create_graph(original_node, self.metadata)
+        topo_sorted = topological_sort(graph)
         imports, sections = categorize_nodes(topo_sorted)
 
-        return updated_node.with_changes(body=imports + sections)
+        return updated_node.with_changes(
+            body=[i.node for i in imports]
+            + [n.node for s in sections for n in s.flatten()]
+        )
 
 
 def create_graph(
     module: cst.Module, metadata: Mapping[ProviderT, Mapping[cst.CSTNode, object]]
-) -> tuple[dict[TopLevelNode, set[TopLevelNode]], dict[TopLevelNode, tuple[int, int]]]:
+) -> dict[OrderedNode, set[OrderedNode]]:
     """Create a graph of definitions (assignments)
 
     :: returns:
@@ -97,7 +103,7 @@ def create_graph(
     modulebodyset: set[TopLevelNode] = set(module.body)
     globalscope = next((s.globals for s in scopes if s is not None))
 
-    def find_parent(node: cst.CSTNode) -> TopLevelNode:
+    def find_top_level_node(node: cst.CSTNode) -> TopLevelNode:
         """Find the `cst.Module.body` that contains the given node."""
         while node not in modulebodyset:
             node = parents[node]
@@ -127,34 +133,34 @@ def create_graph(
             if not globalassignment:
                 continue
 
-            assignment_parent = find_parent(globalassignment.node)
-            access_parent = find_parent(access.node)
+            top_level_assignment = find_top_level_node(globalassignment.node)
+            top_level_access = find_top_level_node(access.node)
 
             # Skip self-edges.
-            if assignment_parent == access_parent:
+            if top_level_assignment == top_level_access:
                 continue
 
-            # Create edge from assignment parent to access parent.
-            graph[assignment_parent].append(access_parent)
+            # Create edge from top_level_assignment to top_level_access
+            graph[top_level_assignment].append(top_level_access)
 
             # Track first access of the assignment.
             coderange = positions[access.node]
-            first_access[assignment_parent] = min(
-                first_access[assignment_parent],
+            first_access[top_level_assignment] = min(
+                first_access[top_level_assignment],
                 (coderange.start.line, coderange.start.column),
             )
 
     indexes = {node: i for i, node in enumerate(module.body)}
-    return {
-        key: set(sorted(values, key=lambda node: indexes[node]))
-        for key, values in graph.items()
-    }, first_access
+    ordered_nodes = [
+        OrderedNode.from_cst_node(node, first_access, indexes) for node in module.body
+    ]
+    lookup = {n.node: n for n in ordered_nodes}
+    return {lookup[k]: set(lookup[v] for v in vs) for k, vs in graph.items()}
 
 
 def topological_sort(
-    graph: dict[TopLevelNode, set[TopLevelNode]],
-    first_access: dict[TopLevelNode, tuple[int, int]],
-) -> list[TopLevelNode]:
+    graph: dict[OrderedNode, set[OrderedNode]],
+) -> list[OrderedNode]:
     """
     Sorts a graph of definitions into a topological order.
 
@@ -163,50 +169,30 @@ def topological_sort(
     ['d', 'c', 'b', 'a']
     """
 
-    def sort_fn(node: TopLevelNode) -> tuple[int, tuple[int, int]]:
-        if isinstance(node, cst.SimpleStatementLine):
-            if isinstance(node.body[0], (cst.Assign, cst.AnnAssign, cst.AugAssign)):
-                return 1, first_access[node]
-            elif isinstance(node.body[0], (cst.Import, cst.ImportFrom)):
-                return 0, first_access[node]
-            else:
-                return 2, first_access[node]  # Unknown
-        elif isinstance(node, (cst.ClassDef,)):
-            return 3, first_access[node]
-        elif isinstance(node, (cst.FunctionDef,)):
-            # Functions get sorted by leaf last. To order by access first after the 'reversal', we multiply by -1
-            return (
-                4,
-                (first_access[node][0] * -1, first_access[node][1] * -1),
-            )
-        else:
-            return 2, first_access[node]  # Unknown
-
     topo_sorted = []
-    innodes: defaultdict[TopLevelNode, int] = defaultdict(int)
+    innodes: defaultdict[OrderedNode, int] = defaultdict(int)
     for src, dsts in graph.items():
         innodes[src]
         for dst in dsts:
             innodes[dst] += 1
 
-    queue = deque([node for node, count in innodes.items() if count == 0])
-    while queue:
-        # Sorting ensures we see constants/unknowns before classes and functions.
-        # This allows to use the end of constants/unkwns as a section end.
-        queue = deque(sorted(queue, key=sort_fn))
-        node = queue.popleft()
+    # Using a heap (sorted list) ensures each section is ordered and each time
+    # we see something out of order, we can start a new section.
+    heap = [node for node, count in innodes.items() if count == 0]
+    heapq.heapify(heap)
+    while heap:
+        node = heapq.heappop(heap)
         topo_sorted.append(node)
         for dst in graph[node]:
             innodes[dst] -= 1
             if innodes[dst] == 0:
-                queue.append(dst)
-
+                heapq.heappush(heap, dst)
     return topo_sorted
 
 
 def categorize_nodes(
-    topo_sorted: list[TopLevelNode],
-) -> tuple[list[cst.SimpleStatementLine], list[list[cst.CSTNode]]]:
+    topo_sorted: list[OrderedNode],
+) -> tuple[list[OrderedNode], list[Section]]:
     """Categorize into: imports + sections.
 
     A section is:
@@ -234,66 +220,13 @@ def categorize_nodes(
     `computed_num` (even though we generally try and put classes before functions, if
     there are no dependencies between them)
     """
-    imports, sections = [], []
-    constants, unknowns, classes, functions = [], [], [], []
+    builder = SectionsBuilder()
 
-    largest_seen = -1
-    i = 0
-    while i < len(topo_sorted):
-        node = topo_sorted[i]
-        category = categorize(node)
+    for node in topo_sorted:
+        builder.add(node)
+    builder.seal()
 
-        if category == "imports":
-            imports.append(node)
-        elif category == "constants" or category == "unknown":
-            if largest_seen > 1:
-                sections.extend(constants + unknowns + classes + functions)
-                constants, unknowns, classes, functions = [], [], [], []
-                largest_seen = -1
-            constants.append(node)
-            largest_seen = 1
-        elif category == "unknown":
-            if largest_seen > 2:
-                sections.extend(constants + unknowns + classes + functions)
-                constants, unknowns, classes, functions = [], [], [], []
-                largest_seen = -1
-            unknowns.append(node)
-            largest_seen = 2
-        elif category == "classes":
-            if largest_seen > 3:
-                sections.extend(constants + unknowns + classes + functions)
-                constants, unknowns, classes, functions = [], [], [], []
-                largest_seen = -1
-            classes.append(node)
-            largest_seen = 3
-        elif category == "functions":
-            functions.insert(0, node)
-            largest_seen = 4
-        else:
-            raise Exception(f"Unknown category: {category}")
-
-        i += 1
-
-    if constants or unknowns or classes or functions:
-        sections.extend(constants + unknowns + classes + functions)
-
-    return imports, sections
-
-
-def categorize(node: cst.CSTNode):
-    if isinstance(node, cst.SimpleStatementLine):
-        if isinstance(node.body[0], (cst.Assign, cst.AnnAssign, cst.AugAssign)):
-            return "constants"
-        elif isinstance(node.body[0], (cst.Import, cst.ImportFrom)):
-            return "imports"
-        else:
-            return "unknown"
-    elif isinstance(node, (cst.ClassDef,)):
-        return "classes"
-    elif isinstance(node, (cst.FunctionDef,)):
-        return "functions"
-    else:
-        return "unknown"
+    return builder.imports, builder.sections
 
 
 def _print_code(node: cst.CSTNode) -> None:

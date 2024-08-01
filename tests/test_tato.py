@@ -39,6 +39,30 @@ class TestMultipass(CodemodTest):
         """
         self.assertCodemod(before, after)
 
+    def test_function_ordering(self) -> None:
+        before = """
+            def second():
+                pass
+                
+            def first():
+                pass
+                
+            def main():
+                first()
+                second()
+        """
+        after = """
+            def main():
+                first()
+                second()
+
+            def first():
+                pass
+            def second():
+                pass
+        """
+        self.assertCodemod(before, after)
+
     def test_multiple_symbols(self) -> None:
         before = """
             from x.y import z

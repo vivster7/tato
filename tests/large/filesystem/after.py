@@ -1,10 +1,10 @@
 # Modified from https://github.com/google/importlab/blob/9751bfc27d5bde83b117c85eee48cb9b6cc0d652/importlab/fs.py
 import abc
-import os
-import tempfile
 import glob
+import os
 import tarfile
-     
+import tempfile
+
 
 class FileSystem(abc.ABC):
     """Interface for file systems."""
@@ -126,6 +126,26 @@ class FileSystemError(Exception):
     pass
 
 
+class StoredFileSystem(FileSystem):
+    """File system based on a file list."""
+
+    def __init__(self, files):
+        self.files = files
+        self.dirs = {os.path.dirname(f) for f in files}
+
+    def isfile(self, path):
+        return path in self.files
+
+    def isdir(self, path):
+        return path in self.dirs
+
+    def read(self, path):
+        return self.files[path]
+
+    def refer_to(self, path):
+        return path
+
+
 class TarFileSystem:
     """Filesystem that serves files out of a .tar."""
 
@@ -151,26 +171,6 @@ class TarFileSystem:
     def read_tarfile(archive_filename):
         tar = tarfile.open(archive_filename)
         return TarFileSystem(tar)
-
-
-class StoredFileSystem(FileSystem):
-    """File system based on a file list."""
-
-    def __init__(self, files):
-        self.files = files
-        self.dirs = {os.path.dirname(f) for f in files}
-
-    def isfile(self, path):
-        return path in self.files
-
-    def isdir(self, path):
-        return path in self.dirs
-
-    def read(self, path):
-        return self.files[path]
-
-    def refer_to(self, path):
-        return path
 
 
 class Path(object):
