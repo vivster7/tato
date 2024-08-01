@@ -14,7 +14,7 @@ authors = [
   { name = "Vivek Dasari", email = "vivster7@gmail.com" },
 ]
 classifiers = [
-  "Development Status :: 4 - Beta",
+  "Development Status :: 3  - Alpha",
   "Programming Language :: Python",
   "Programming Language :: Python :: 3.8",
   "Programming Language :: Python :: 3.9",
@@ -29,9 +29,9 @@ dependencies = [
 ]
 
 [project.urls]
-Documentation = "https://github.com/Vivek Dasari/tato#readme"
-Issues = "https://github.com/Vivek Dasari/tato/issues"
-Source = "https://github.com/Vivek Dasari/tato"
+Documentation = "https://github.com/vivster7/tato#readme"
+Issues = "https://github.com/vivster7/tato/issues"
+Source = "https://github.com/vivster7/tato"
 
 [project.scripts]
 tato = "tato.cli:main"

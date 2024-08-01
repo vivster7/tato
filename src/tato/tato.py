@@ -31,22 +31,9 @@ class ReorderFileCodemod(codemod.VisitorBasedCodemodCommand):
         3. Classes (leaf classes first)
         4. Functions (leaf functions last)
 
-    Somtimes constants may depend on classes/functions, so those are defined
-    before constants.
-
-    If there are multiple constants that depend on different functions/classes,
-    we'll get multiple layers that look like:
-        1. Imports
-        2. Classes/Functions
-        3. Constants/Expressions that use #2
-        4. Classes/Functions
-        5. Costants/Expressions that use #4
-        ...
-        8. Classes (leaf classes first)
-        9. Functions (leaf functions last)
-
-    This autoformatting will be far from perfect. Manually edits are encouraged.
-    Or break up the file in to multiple files.
+    Ocassionally, due to Python semantics, we'll have to break this order.
+    In that case, we'll organize the file into sections, where each section
+    is ordered.
     """
 
     METADATA_DEPENDENCIES = (
@@ -201,24 +188,8 @@ def categorize_nodes(
      - classes
      - functions
 
-    If a constant or class depends on a function, we'll start a new section.
-    So each section will be ordered (constants, unknowns, classes, functions).
-
-    Example:
-    ```
-    def computed_num():
-      return 42
-
-    ## End Section; Start a new section.
-
-    class A:
-      num = computed_num()
-    ```
-
-    Since `A` depends on `computed_num`, we'll see the function first in `topo_sorted`.
-    Then, when we see `A`, we'll start a new section, so class `A` will be writen after
-    `computed_num` (even though we generally try and put classes before functions, if
-    there are no dependencies between them)
+    We start a new section when something is "out of order", so each section is
+    ordered (constants, unknowns, classes, functions).
     """
     builder = SectionsBuilder()
 
@@ -230,6 +201,7 @@ def categorize_nodes(
 
 
 def _print_code(node: cst.CSTNode) -> None:
+    """Print the code of a node. Used for debugging."""
     tree = cst.parse_module("")
     tree = tree.with_changes(body=[node])
     print(tree.code)
