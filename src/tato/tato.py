@@ -160,6 +160,9 @@ def topological_sort(
     innodes: defaultdict[OrderedNode, int] = defaultdict(int)
     for src, dsts in graph.items():
         innodes[src]
+        # Ignore usages of imports when sorting.
+        if src.node_type == NodeType.IMPORT:
+            continue
         for dst in dsts:
             innodes[dst] += 1
 
