@@ -16,7 +16,7 @@ from libcst.metadata import (
 
 from tato._section import Section, SectionsBuilder
 
-from ._node import OrderedNode, TopLevelNode
+from ._node import NodeType, OrderedNode, TopLevelNode
 
 # Expected to be larger than any possible line number.
 LARGE_NUM = 10_000_000
@@ -41,6 +41,14 @@ class ReorderFileCodemod(codemod.VisitorBasedCodemodCommand):
         ParentNodeProvider,
         PositionProvider,
     )
+
+    def should_allow_multiple_passes(self) -> bool:
+        """
+        Call transform repeatedly until the tree doesn't change between passes.
+
+        `test_mashed_potato()` shows a case when this necessary.
+        """
+        return True
 
     def leave_Module(
         self, original_node: cst.Module, updated_node: cst.Module

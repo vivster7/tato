@@ -108,3 +108,56 @@ class TestMultipass(CodemodTest):
         """
 
         self.assertCodemod(before, after)
+
+    def test_mashed_potato(self) -> None:
+        before = """
+            import random
+
+            def peel(vegetable):
+                return vegetable[1:-1]
+
+            def chop(vegetable):
+                return list(vegetable)
+
+            def mash(veg_pieces):
+                random.shuffle(veg_pieces)
+                return ''.join(veg_pieces)
+
+            def prepare(vegetable):
+                peeled = peel(vegetable)
+                return chop(peeled)
+
+            def mashed_potatoes(vegetable):
+                prepared = prepare(vegetable)
+                return mash(prepared)
+
+            if __name__ == "__main__":
+                potato = ' potato '
+                print(mashed_potatoes(potato))
+        """
+        after = """
+            import random
+
+            def mashed_potatoes(vegetable):
+                prepared = prepare(vegetable)
+                return mash(prepared)
+
+            def prepare(vegetable):
+                peeled = peel(vegetable)
+                return chop(peeled)
+
+            def mash(veg_pieces):
+                random.shuffle(veg_pieces)
+                return ''.join(veg_pieces)
+
+            def peel(vegetable):
+                return vegetable[1:-1]
+
+            def chop(vegetable):
+                return list(vegetable)
+
+            if __name__ == "__main__":
+                potato = ' potato '
+                print(mashed_potatoes(potato))
+        """
+        self.assertCodemod(before, after)
