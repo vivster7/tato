@@ -7,9 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.5] - 2024-07-31
+
 ### Fixed
 - Ignore self-edges; Fixes bug causing top-level nodes to disappear.
-
+- Generically, fixes the bug where nodes were appearing out of order by hardening the concept of a Section.
 
 ## [0.0.4] - 2024-07-31
 
