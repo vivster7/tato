@@ -8,6 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 
+## [0.1.0] - 2024-08-02
+
+### Added
+- Hacky, but better argument parsing from CLI. Supports --version and --help.
+
+
 ## [0.0.6] - 2024-08-01
 
 ### Changed

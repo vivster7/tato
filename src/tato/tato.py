@@ -14,9 +14,8 @@ from libcst.metadata import (
     ScopeProvider,
 )
 
+from tato._node import NodeType, OrderedNode, TopLevelNode
 from tato._section import Section, SectionsBuilder
-
-from ._node import NodeType, OrderedNode, TopLevelNode
 
 # Expected to be larger than any possible line number.
 LARGE_NUM = 10_000_000
