@@ -1,5 +1,4 @@
 from dataclasses import dataclass, field
-from xmlrpc.client import boolean
 
 from tato._node import NodeType, OrderedNode
 
@@ -43,7 +42,7 @@ class SectionsBuilder:
 
     _largest_node_type: NodeType = field(default=NodeType.IMPORT)
     _current: Section = field(default_factory=Section)
-    _sealed: boolean = field(default=False)
+    _sealed: bool = field(default=False)
 
     def add(self, node: OrderedNode) -> None:
         if self._sealed:
