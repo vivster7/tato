@@ -24,7 +24,7 @@ class Vegetable:
     ...
 
 class Potato(Vegetable):
-    expiration_days = MAGIC_NUMER
+    expiration_days = MAGIC_NUMBER
 
 
 ## After running `tato`
@@ -37,11 +37,11 @@ class Vegetable:
 class Potato(Vegetable):
     expiration_days = MAGIC_NUMBER
 
-def _stripped_str_to_int(s):
-    return int(s.strip())
-
 def jumble(string):
     return random.choice(_stripped_str_to_int(string))
+
+def _stripped_str_to_int(s):
+    return int(s.strip())
 ```
 
 ## Quick start
@@ -86,7 +86,15 @@ Constants: Moved to the top of the file, constants typically have brief definiti
 
 Classes: Arranged according to their inheritance hierarchy, with base classes appearing first.
 
-Functions: Placed in the final section and sorted by call hierarchy. This structure puts the main function first, prioritizing the most crucial information. (Note: Classes aren't organized this way as their inheritance is evaluated at import time.)
+Functions: Placed in the final section and sorted by call hierarchy. This structure puts the main function first, prioritizing the most crucial information. 
 
 ### Handling Interdependencies:
 In some cases, strict adherence to this four-section layout may not be possible due to interdependencies. For instance, a constant might rely on a class or function definition. In such situations, Tato will elevate the necessary definitions to maintain file validity. These elevated definitions form valid subsections of (constants, classes, functions), though most fields in these subsections are typically empty.
+
+## FAQ
+
+### How can I configure my autoformatter to always run after tato?
+TODO
+
+### Why are functions sorted in call hierarchical order? And why are classes sorted in inheritance order?
+TODO

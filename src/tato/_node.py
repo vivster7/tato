@@ -33,6 +33,7 @@ class OrderedNode:
     # Due to Python semantics, most node_type's must be 'leaf_first', except
     # functions.
     leaf_order: Literal["leaf_first", "leaf_last"]
+    _debug_source_code: str
 
     @classmethod
     def from_cst_node(
@@ -62,12 +63,19 @@ class OrderedNode:
             else:
                 return "leaf_first"
 
+        def _debug_source_code(node: cst.CSTNode) -> str:
+            """Print the code of a node. Used for debugging."""
+            tree = cst.parse_module("")
+            tree = tree.with_changes(body=[node])
+            return tree.code
+
         return cls(
             node=cstnode,
             node_type=node_type(cstnode),
             first_access=first_access[cstnode],
             prev_body_index=indexes[cstnode],
             leaf_order=leaf_type(cstnode),
+            _debug_source_code=_debug_source_code(cstnode),
         )
 
     def __hash__(self) -> int:
@@ -91,7 +99,9 @@ class OrderedNode:
                 # Something about inserting functions in reverse order...
                 return (
                     self.node_type,
-                    (self.first_access[0] * -1, self.first_access[0] * -1),
+                    self.first_access,
+                    # (self.first_access[0] * -1, self.first_access[0] * -1),
+                    # (self.first_access[0] * -1, self.first_access[0] * -1),
                     self.prev_body_index,
                 )
             else:

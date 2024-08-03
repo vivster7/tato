@@ -109,55 +109,49 @@ class TestMultipass(CodemodTest):
 
         self.assertCodemod(before, after)
 
-    def test_mashed_potato(self) -> None:
+    def test_readme_example(self) -> None:
         before = """
+            def _stripped_str_to_int(s):
+                return int(s.strip())
+
             import random
+            def jumble(string):
+                return random.choice(_stripped_str_to_int(string))
 
-            def peel(vegetable):
-                return vegetable[1:-1]
+            MAGIC_NUMBER = 42
+            class Vegetable:
+                ...
 
-            def chop(vegetable):
-                return list(vegetable)
-
-            def mash(veg_pieces):
-                random.shuffle(veg_pieces)
-                return ''.join(veg_pieces)
-
-            def prepare(vegetable):
-                peeled = peel(vegetable)
-                return chop(peeled)
-
-            def mashed_potatoes(vegetable):
-                prepared = prepare(vegetable)
-                return mash(prepared)
-
-            if __name__ == "__main__":
-                potato = ' potato '
-                print(mashed_potatoes(potato))
+            class Potato(Vegetable):
+                expiration_days = MAGIC_NUMBER
         """
         after = """
             import random
 
-            def mashed_potatoes(vegetable):
-                prepared = prepare(vegetable)
-                return mash(prepared)
+            MAGIC_NUMBER = 42
+            class Vegetable:
+                ...
 
-            def prepare(vegetable):
-                peeled = peel(vegetable)
-                return chop(peeled)
-
-            def mash(veg_pieces):
-                random.shuffle(veg_pieces)
-                return ''.join(veg_pieces)
-
-            def peel(vegetable):
-                return vegetable[1:-1]
-
-            def chop(vegetable):
-                return list(vegetable)
-
-            if __name__ == "__main__":
-                potato = ' potato '
-                print(mashed_potatoes(potato))
+            class Potato(Vegetable):
+                expiration_days = MAGIC_NUMBER
+            def jumble(string):
+                return random.choice(_stripped_str_to_int(string))
+            def _stripped_str_to_int(s):
+                return int(s.strip())
         """
+        self.assertCodemod(before, after)
+
+    def test_playground(self) -> None:
+        before = """
+            def a(): b()
+            def b(): pass
+
+            ABC = a()
+        """
+        after = """
+            def a(): b()
+            def b(): pass
+
+            ABC = a()
+            """
         self.assertCodemod(before, after)

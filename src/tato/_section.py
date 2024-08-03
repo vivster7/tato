@@ -1,5 +1,13 @@
 from dataclasses import dataclass, field
 
+import libcst as cst
+from libcst.metadata import (
+    ParentNodeProvider,
+    PositionProvider,
+    ScopeProvider,
+)
+
+from tato._graph import create_graphs, topological_sort
 from tato._node import NodeType, OrderedNode
 
 
@@ -20,8 +28,7 @@ class Section:
         elif node.node_type == NodeType.CLASS:
             self._classes.append(node)
         elif node.node_type == NodeType.FUNCTION:
-            # TODO: Check node.leaf_order
-            self._functions.insert(0, node)
+            self._functions.append(node)
         else:
             raise ValueError(f"Unknown node_type: {node.node_type}")
 
@@ -59,4 +66,50 @@ class SectionsBuilder:
     def seal(self) -> None:
         if not self._sealed:
             self.sections.append(self._current)
+            self.sort_functions_sections()
             self._sealed = True
+
+    def sort_functions_sections(self) -> None:
+        """Sort functions by call hierarchy order."""
+        for section in self.sections:
+            if section._functions:
+                temp_module = cst.parse_module("")
+                temp_module = temp_module.with_changes(
+                    body=[n.node for n in section._functions]
+                )
+                wrapper = cst.MetadataWrapper(temp_module, unsafe_skip_copy=True)
+                metadata = wrapper.resolve_many(
+                    [
+                        ScopeProvider,
+                        ParentNodeProvider,
+                        PositionProvider,
+                    ]
+                )
+                graphs = create_graphs(temp_module, metadata)
+                topo_nodes = topological_sort(graphs["calls"])
+                section._functions = [n for n in topo_nodes]
+
+
+def categorize_sections(
+    topo_sorted: list[OrderedNode],
+) -> tuple[list[OrderedNode], list[Section]]:
+    """Categorize into: imports + sections.
+
+    A section is:
+     - constants
+     - unknonws
+     - classes
+     - functions
+
+    We start a new section when something is "out of order", so each section is
+    ordered (constants, unknowns, classes, functions).
+
+    Functions get resorted by call hierarchy order when sealed.
+    """
+    builder = SectionsBuilder()
+
+    for node in topo_sorted:
+        builder.add(node)
+    builder.seal()
+
+    return builder.imports, builder.sections

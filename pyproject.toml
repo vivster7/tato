@@ -40,12 +40,15 @@ tato = "tato.cli:main"
 [tool.hatch.version]
 path = "src/tato/__about__.py"
 
-[tool.hatch.envs.types]
+[tool.hatch.envs.dev]
 extra-dependencies = [
   "mypy>=1.0.0",
+  "pytest>=8.0.0",
+  "libcst>=1.0.0",
 ]
-[tool.hatch.envs.types.scripts]
+[tool.hatch.envs.dev.scripts]
 check = "mypy --install-types --non-interactive {args:src/tato tests}"
+test = "pytest {args:tests}"
 
 [tool.coverage.run]
 source_pkgs = ["tato", "tests"]
