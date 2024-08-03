@@ -8,6 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 
+## [0.1.1] - 2024-08-03
+
+### Changed
+- Functions should now more stably sort by call hierarchy order. Added a second pass of sorting to make this logic easier.
+
+
 ## [0.1.0] - 2024-08-02
 
 ### Added
