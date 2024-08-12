@@ -2,7 +2,7 @@ from libcst.codemod import CodemodTest
 from tato.tato import ReorderFileCodemod
 
 
-class TestMultipass(CodemodTest):
+class TestTato(CodemodTest):
     TRANSFORM = ReorderFileCodemod
 
     def test_unknown_constants_ordering(self) -> None:
@@ -36,30 +36,6 @@ class TestMultipass(CodemodTest):
                 WATER = FLOWER + 1
             else:
                 WATER = FLOWER + 1
-        """
-        self.assertCodemod(before, after)
-
-    def test_function_ordering(self) -> None:
-        before = """
-            def second():
-                pass
-                
-            def first():
-                pass
-                
-            def main():
-                first()
-                second()
-        """
-        after = """
-            def main():
-                first()
-                second()
-
-            def first():
-                pass
-            def second():
-                pass
         """
         self.assertCodemod(before, after)
 
@@ -154,4 +130,81 @@ class TestMultipass(CodemodTest):
 
             ABC = a()
             """
+        self.assertCodemod(before, after)
+
+    def test_sections_simple(self) -> None:
+        before = """
+            def eggs(): pass
+            BACON = 1
+            class Toats: pass
+            import breakfast
+        """
+        after = """
+            import breakfast
+            BACON = 1
+            class Toats: pass
+            def eggs(): pass
+            """
+        self.assertCodemod(before, after)
+
+    def test_constants_and_classes_sections_order_by_deps_first(self) -> None:
+        before = """
+            # NB: this code would not run
+            D = C + 1
+            C = 1
+            class A:
+                pass
+            class B(A):
+                pass
+        """
+        after = """
+            # NB: this code would not run
+            C = 1
+            D = C + 1
+            class B(A):
+                pass
+            class A:
+                pass
+            """
+        self.assertCodemod(before, after)
+
+    def test_function_order_by_deps_last(self) -> None:
+        before = """
+            def second():
+                pass
+                
+            def first():
+                pass
+                
+            def main():
+                first()
+                second()
+        """
+        after = """
+            def main():
+                first()
+                second()
+
+            def first():
+                pass
+            def second():
+                pass
+        """
+        self.assertCodemod(before, after)
+
+    def test_subsections_1(self) -> None:
+        before = """
+            class Batter: pass
+            def water(b: Batter): pass
+            WATER = water()
+            class Cookie: pass
+            def milk(c: Cookie): water(c)
+        """
+        after = """
+            class Batter: pass
+            class Cookie: pass
+            def water(b: Batter): pass
+            WATER = water()
+            def milk(c: Cookie): water(c)
+        """
         self.assertCodemod(before, after)
