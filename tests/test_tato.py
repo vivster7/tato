@@ -117,6 +117,25 @@ class TestTato(CodemodTest):
         """
         self.assertCodemod(before, after)
 
+    def test_module_docstring_appears_before_imports(self) -> None:
+        before = """
+            \"\"\"
+            module docstring
+
+            very long
+            \"\"\"
+            import logging
+        """
+        after = """
+            \"\"\"
+            module docstring
+
+            very long
+            \"\"\"
+            import logging
+        """
+        self.assertCodemod(before, after)        
+
 
     def test_constants_placed_after_all_used_definitions(self) -> None:
         before = """
@@ -227,19 +246,19 @@ class TestPlayground(CodemodTest):
 
     def test_playground(self) -> None:
         before = """
-            import logging
-            
-            if TYPE_CHECKING:
-                from . import unit_of_work
-
-            logger = logging.getLogger(__name__)
+            class A:
+                def __init__(self):
+                    self.b = B()
+            class B:
+                def __init__(self):
+                    self.a = A()
         """
         after = """
-            import logging
-
-            if TYPE_CHECKING:
-                from . import unit_of_work
-
-            logger = logging.getLogger(__name__)
+            class A:
+                def __init__(self):
+                    self.b = B()
+            class B:
+                def __init__(self):
+                    self.a = A()
         """
         self.assertCodemod(before, after)

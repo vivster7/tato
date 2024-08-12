@@ -46,7 +46,7 @@ class OrderedNode:
 
         return cls(
             node=cstnode,
-            node_type=node_type(cstnode),
+            node_type=node_type(cstnode, indexes[cstnode]),
             first_access=first_access[cstnode],
             prev_body_index=indexes[cstnode],
             leaf_order=leaf_type(cstnode),

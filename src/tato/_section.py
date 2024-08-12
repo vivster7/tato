@@ -45,6 +45,7 @@ class SectionsBuilder:
     section.
     """
 
+    module_docstring: list[OrderedNode] = field(default_factory=list)
     imports: list[OrderedNode] = field(default_factory=list)
     sections: list[Section] = field(default_factory=list)
 
@@ -55,6 +56,9 @@ class SectionsBuilder:
     def add(self, node: OrderedNode) -> None:
         if self._sealed:
             raise ValueError("Cannot add to a sealed builder")
+        if node.node_type == NodeType.MODULE_DOCSTRING:
+            self.module_docstring.append(node)
+            return
         if node.node_type == NodeType.IMPORT:
             self.imports.append(node)
             return
@@ -113,4 +117,4 @@ def categorize_sections(
         builder.add(node)
     builder.seal()
 
-    return builder.imports, builder.sections
+    return builder.module_docstring + builder.imports, builder.sections

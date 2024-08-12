@@ -1,5 +1,5 @@
 import enum
-from typing import Union
+from typing import Optional, Union
 
 import libcst as cst
 import libcst.matchers as m
@@ -9,21 +9,25 @@ TopLevelNode = Union[cst.SimpleStatementLine, cst.BaseCompoundStatement]
 
 
 class NodeType(enum.IntEnum):
-    IMPORT = 0
-    CONSTANT = 1
-    UNKNOWN = 2
-    CLASS = 3
-    FUNCTION = 4
+    MODULE_DOCSTRING = 0
+    IMPORT = 1
+    CONSTANT = 2
+    UNKNOWN = 3
+    CLASS = 4
+    FUNCTION = 5
 
 
-def node_type(node: TopLevelNode) -> NodeType:
+def node_type(node: TopLevelNode, old_module_index: Optional[int] = None) -> NodeType:
     if isinstance(node, cst.SimpleStatementLine):
         if isinstance(node.body[0], (cst.Assign, cst.AnnAssign, cst.AugAssign)):
             return NodeType.CONSTANT
         elif isinstance(node.body[0], (cst.Import, cst.ImportFrom)):
             return NodeType.IMPORT
         else:
-            return NodeType.UNKNOWN
+            if old_module_index == 0 and isinstance(node.body[0], cst.Expr):
+                return NodeType.MODULE_DOCSTRING
+            else:
+                return NodeType.UNKNOWN
     elif isinstance(node, (cst.ClassDef,)):
         return NodeType.CLASS
     elif isinstance(node, (cst.FunctionDef,)):
