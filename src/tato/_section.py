@@ -8,7 +8,8 @@ from libcst.metadata import (
 )
 
 from tato._graph import create_graphs, topological_sort
-from tato._node import NodeType, OrderedNode
+from tato._node import OrderedNode
+from tato._node_type import NodeType
 
 
 @dataclass

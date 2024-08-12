@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- Fixed bug where using an imported symbol would cause the target symbol to sort too high in the output, creating invalid code.
+
 
 ## [0.1.1] - 2024-08-03
 

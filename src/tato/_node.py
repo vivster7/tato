@@ -1,19 +1,9 @@
-import enum
 from dataclasses import dataclass
-from typing import Literal, Mapping, Union
+from typing import Literal, Mapping
 
 import libcst as cst
 
-# Type of a node found in a module's body.
-TopLevelNode = Union[cst.SimpleStatementLine, cst.BaseCompoundStatement]
-
-
-class NodeType(enum.IntEnum):
-    IMPORT = 0
-    CONSTANT = 1
-    UNKNOWN = 2
-    CLASS = 3
-    FUNCTION = 4
+from tato._node_type import NodeType, TopLevelNode, node_type
 
 
 @dataclass(frozen=True)
@@ -42,21 +32,6 @@ class OrderedNode:
         first_access: Mapping[TopLevelNode, tuple[int, int]],
         indexes: Mapping[TopLevelNode, int],
     ):
-        def node_type(node: TopLevelNode) -> NodeType:
-            if isinstance(node, cst.SimpleStatementLine):
-                if isinstance(node.body[0], (cst.Assign, cst.AnnAssign, cst.AugAssign)):
-                    return NodeType.CONSTANT
-                elif isinstance(node.body[0], (cst.Import, cst.ImportFrom)):
-                    return NodeType.IMPORT
-                else:
-                    return NodeType.UNKNOWN
-            elif isinstance(node, (cst.ClassDef,)):
-                return NodeType.CLASS
-            elif isinstance(node, (cst.FunctionDef,)):
-                return NodeType.FUNCTION
-            else:
-                return NodeType.UNKNOWN
-
         def leaf_type(node: TopLevelNode) -> Literal["leaf_first", "leaf_last"]:
             if isinstance(node, (cst.FunctionDef,)):
                 return "leaf_last"

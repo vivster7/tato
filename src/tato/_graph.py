@@ -4,7 +4,6 @@ from typing import Mapping, TypedDict, cast
 
 import libcst as cst
 from libcst.metadata import (
-    Assignment,
     CodeRange,
     ParentNodeProvider,
     PositionProvider,
@@ -13,7 +12,8 @@ from libcst.metadata import (
     ScopeProvider,
 )
 
-from tato._node import NodeType, OrderedNode, TopLevelNode
+from tato._node import OrderedNode, TopLevelNode
+from tato._node_type import NodeType, node_type
 
 Graph = dict[OrderedNode, set[OrderedNode]]
 
@@ -77,28 +77,21 @@ def create_graphs(
         calls[node] = []
         called_by[node] = []
 
-    for scope in scopes:
-        if scope is None:
-            continue
-        for access in scope.accesses:
-            # Using first global assignment. This seems likely to be buggy.
-            globalassignment = next(
-                (
-                    a
-                    for a in access.referents
-                    if a.scope == globalscope and isinstance(a, Assignment)
-                ),
-                None,
-            )
-            # Skip non-global assignments.
-            if not globalassignment:
-                continue
+    globalscope = next((s.globals for s in scopes if s is not None), None)
+    if globalscope is None:
+        raise Exception("No global scope found")
 
-            top_level_assignment = find_top_level_node(globalassignment.node)
+    for assignment in globalscope.assignments:
+        for access in assignment.references:
+            top_level_assignment = find_top_level_node(assignment.node)
             top_level_access = find_top_level_node(access.node)
 
             # Skip self-edges.
             if top_level_assignment == top_level_access:
+                continue
+
+            # Ignore usages of imports
+            if node_type(top_level_assignment) == NodeType.IMPORT:
                 continue
 
             # Create edge from top_level_assignment to top_level_access

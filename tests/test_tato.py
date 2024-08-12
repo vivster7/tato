@@ -85,6 +85,34 @@ class TestTato(CodemodTest):
 
         self.assertCodemod(before, after)
 
+    def test_imports_index_are_ignored(self) -> None:
+        before = """
+                import abc
+                def fn(): pass
+                constant = abc.g() + fn()
+            """
+        after = """
+                import abc
+                def fn(): pass
+                constant = abc.g() + fn()
+                """
+        self.assertCodemod(before, after)
+
+    def test_constants_placed_after_all_used_definitions(self) -> None:
+        before = """
+            def fn1(): pass
+            def fn2(): pass
+            def fn3(): pass
+            ABC = [fn1(), fn2()]
+        """
+        after = """
+            def fn1(): pass
+            def fn2(): pass
+            ABC = [fn1(), fn2()]
+            def fn3(): pass
+            """
+        self.assertCodemod(before, after)
+
     def test_readme_example(self) -> None:
         before = """
             def _stripped_str_to_int(s):
@@ -117,21 +145,6 @@ class TestTato(CodemodTest):
         """
         self.assertCodemod(before, after)
 
-    def test_playground(self) -> None:
-        before = """
-            def a(): b()
-            def b(): pass
-
-            ABC = a()
-        """
-        after = """
-            def a(): b()
-            def b(): pass
-
-            ABC = a()
-            """
-        self.assertCodemod(before, after)
-
     def test_sections_simple(self) -> None:
         before = """
             def eggs(): pass
@@ -144,27 +157,6 @@ class TestTato(CodemodTest):
             BACON = 1
             class Toats: pass
             def eggs(): pass
-            """
-        self.assertCodemod(before, after)
-
-    def test_constants_and_classes_sections_order_by_deps_first(self) -> None:
-        before = """
-            # NB: this code would not run
-            D = C + 1
-            C = 1
-            class A:
-                pass
-            class B(A):
-                pass
-        """
-        after = """
-            # NB: this code would not run
-            C = 1
-            D = C + 1
-            class B(A):
-                pass
-            class A:
-                pass
             """
         self.assertCodemod(before, after)
 
@@ -207,4 +199,23 @@ class TestTato(CodemodTest):
             WATER = water()
             def milk(c: Cookie): water(c)
         """
+        self.assertCodemod(before, after)
+
+
+class TestPlayground(CodemodTest):
+    TRANSFORM = ReorderFileCodemod
+
+    def test_playground(self) -> None:
+        before = """
+            def fn1(): pass
+            def fn2(): pass
+            def fn3(): pass
+            ABC = [fn1(), fn2()]
+        """
+        after = """
+            def fn1(): pass
+            def fn2(): pass
+            ABC = [fn1(), fn2()]
+            def fn3(): pass
+            """
         self.assertCodemod(before, after)
