@@ -87,16 +87,36 @@ class TestTato(CodemodTest):
 
     def test_imports_index_are_ignored(self) -> None:
         before = """
-                import abc
-                def fn(): pass
-                constant = abc.g() + fn()
-            """
+            import abc
+            def fn(): pass
+            constant = abc.g() + fn()
+        """
         after = """
-                import abc
-                def fn(): pass
-                constant = abc.g() + fn()
-                """
+            import abc
+            def fn(): pass
+            constant = abc.g() + fn()
+        """
         self.assertCodemod(before, after)
+
+    def test_imports_include_type_checking_blocks(self) -> None:
+        before = """
+            import logging
+            
+            if TYPE_CHECKING:
+                from . import unit_of_work
+
+            logger = logging.getLogger(__name__)
+        """
+        after = """
+            import logging
+
+            if TYPE_CHECKING:
+                from . import unit_of_work
+
+            logger = logging.getLogger(__name__)
+        """
+        self.assertCodemod(before, after)
+
 
     def test_constants_placed_after_all_used_definitions(self) -> None:
         before = """
@@ -207,15 +227,19 @@ class TestPlayground(CodemodTest):
 
     def test_playground(self) -> None:
         before = """
-            def fn1(): pass
-            def fn2(): pass
-            def fn3(): pass
-            ABC = [fn1(), fn2()]
+            import logging
+            
+            if TYPE_CHECKING:
+                from . import unit_of_work
+
+            logger = logging.getLogger(__name__)
         """
         after = """
-            def fn1(): pass
-            def fn2(): pass
-            ABC = [fn1(), fn2()]
-            def fn3(): pass
-            """
+            import logging
+
+            if TYPE_CHECKING:
+                from . import unit_of_work
+
+            logger = logging.getLogger(__name__)
+        """
         self.assertCodemod(before, after)

@@ -7,8 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+
+## [0.1.2] - 2024-08-03
+
 ### Fixed
 - Fixed bug where using an imported symbol would cause the target symbol to sort too high in the output, creating invalid code.
+- Sort `if TYPE_CHECKING:` blocks into the "imports" section
 
 
 ## [0.1.1] - 2024-08-03

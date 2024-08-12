@@ -2,6 +2,7 @@ import enum
 from typing import Union
 
 import libcst as cst
+import libcst.matchers as m
 
 # Type of a node found in a module's body.
 TopLevelNode = Union[cst.SimpleStatementLine, cst.BaseCompoundStatement]
@@ -28,4 +29,8 @@ def node_type(node: TopLevelNode) -> NodeType:
     elif isinstance(node, (cst.FunctionDef,)):
         return NodeType.FUNCTION
     else:
-        return NodeType.UNKNOWN
+        # Treat `if TYPE_CHECKING:` blocks like imports
+        if m.matches(node, m.If(test=m.Name("TYPE_CHECKING"))):
+            return NodeType.IMPORT
+        else:
+            return NodeType.UNKNOWN
