@@ -98,6 +98,12 @@ def create_graphs(
             calls[top_level_access].append(top_level_assignment)
             called_by[top_level_assignment].append(top_level_access)
 
+            # Skip any edges that cause cycles in the graph.
+            if _has_cycles(calls):
+                calls[top_level_access].pop()
+                called_by[top_level_assignment].pop()
+                continue
+
             # Track first access of the assignment.
             coderange = positions[access.node]
             first_access[top_level_assignment] = min(
@@ -118,9 +124,7 @@ def create_graphs(
     }
 
 
-def topological_sort(
-    graph: dict[OrderedNode, set[OrderedNode]],
-) -> list[OrderedNode]:
+def topological_sort(graph: Graph) -> list[OrderedNode]:
     """
     Sorts a graph of definitions into a topological order.
 
@@ -151,3 +155,28 @@ def topological_sort(
             if innodes[dst] == 0:
                 heapq.heappush(heap, dst)
     return topo_sorted
+
+
+def _has_cycles(graph: dict[TopLevelNode, list[TopLevelNode]]) -> bool:
+    """Returns true is the graph has cycles."""
+
+    visited = set()
+    stack = set()
+
+    def dfs(node: TopLevelNode):
+        if node in visited:
+            return False
+        if node in stack:
+            return True
+        stack.add(node)
+        for dst in graph[node]:
+            if dfs(dst):
+                return True
+        stack.remove(node)
+        visited.add(node)
+        return False
+
+    for node in graph:
+        if dfs(node):
+            return True
+    return False

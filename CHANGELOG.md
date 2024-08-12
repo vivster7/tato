@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Module docstrings stay sorted above imports.
+- Add cycle detection. No longer removes nodes from files with cycles.
 
 
 ## [0.1.2] - 2024-08-03
