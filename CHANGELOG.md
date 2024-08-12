@@ -7,12 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+
+## [0.1.3] - 2024-08-12
+
 ### Fixed
 - Module docstrings stay sorted above imports.
 - Add cycle detection. No longer removes nodes from files with cycles.
 
 
-## [0.1.2] - 2024-08-03
+## [0.1.2] - 2024-08-11
 
 ### Fixed
 - Fixed bug where using an imported symbol would cause the target symbol to sort too high in the output, creating invalid code.
