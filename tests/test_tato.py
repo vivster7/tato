@@ -134,8 +134,7 @@ class TestTato(CodemodTest):
             \"\"\"
             import logging
         """
-        self.assertCodemod(before, after)        
-
+        self.assertCodemod(before, after)
 
     def test_constants_placed_after_all_used_definitions(self) -> None:
         before = """
@@ -181,6 +180,25 @@ class TestTato(CodemodTest):
                 return random.choice(_stripped_str_to_int(string))
             def _stripped_str_to_int(s):
                 return int(s.strip())
+        """
+        self.assertCodemod(before, after)
+
+    def test_classes_with_cycle(self) -> None:
+        before = """
+            class A:
+                def __init__(self):
+                    self.b = B()
+            class B:
+                def __init__(self):
+                    self.a = A()
+        """
+        after = """
+            class A:
+                def __init__(self):
+                    self.b = B()
+            class B:
+                def __init__(self):
+                    self.a = A()
         """
         self.assertCodemod(before, after)
 
@@ -240,25 +258,66 @@ class TestTato(CodemodTest):
         """
         self.assertCodemod(before, after)
 
+    def test_functions_decorator_sorts_first(self) -> None:
+        before = """
+            def decorator(func):
+                def wrapper(*args, **kwargs):
+                    return func(*args, **kwargs)
+                return wrapper
+
+            @decorator
+            def fn():
+                pass
+        """
+        after = """
+            def decorator(func):
+                def wrapper(*args, **kwargs):
+                    return func(*args, **kwargs)
+                return wrapper
+
+            @decorator
+            def fn():
+                pass
+        """
+        self.assertCodemod(before, after)
+
+    def test_functions_as_default_args_in_globalscope(self) -> None:
+        before = """
+            def fn(): pass
+            def fn2(f = fn): pass
+        """
+        after = """
+            def fn(): pass
+            def fn2(f = fn): pass
+        """
+        self.assertCodemod(before, after)
+
+    def test_classes_decorated(self) -> None:
+        before = """
+            def decorator(): pass
+            @decorator
+            class A: pass
+        """
+        after = """
+            def decorator(): pass
+            @decorator
+            class A: pass
+        """
+        self.assertCodemod(before, after)
+
 
 class TestPlayground(CodemodTest):
     TRANSFORM = ReorderFileCodemod
 
     def test_playground(self) -> None:
         before = """
-            class A:
-                def __init__(self):
-                    self.b = B()
-            class B:
-                def __init__(self):
-                    self.a = A()
+            def decorator(): pass
+            @decorator
+            class A: pass
         """
         after = """
-            class A:
-                def __init__(self):
-                    self.b = B()
-            class B:
-                def __init__(self):
-                    self.a = A()
+            def decorator(): pass
+            @decorator
+            class A: pass
         """
         self.assertCodemod(before, after)

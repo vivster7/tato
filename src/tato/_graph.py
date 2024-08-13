@@ -95,11 +95,23 @@ def create_graphs(
                 continue
 
             # Create edge from top_level_assignment to top_level_access
-            calls[top_level_access].append(top_level_assignment)
-            called_by[top_level_assignment].append(top_level_access)
+            if (
+                node_type(top_level_assignment) == NodeType.FUNCTION
+                and node_type(top_level_access) == NodeType.FUNCTION
+                and access.scope == globalscope
+            ):
+                # This is.. super confusing. A decorator is called by the function it decorates (access).
+                # But when topological sorting calls for functions, the decorator must be defined before the function.
+                # In this case, the decorator "calls" the function. This needs a better / more clear concept.
+                # I'm overloading
+                calls[top_level_assignment].append(top_level_access)
+                called_by[top_level_assignment].append(top_level_access)
+            else:
+                calls[top_level_access].append(top_level_assignment)
+                called_by[top_level_assignment].append(top_level_access)
 
             # Skip any edges that cause cycles in the graph.
-            if _has_cycles(calls):
+            if _has_cycles(calls) or _has_cycles(called_by):
                 calls[top_level_access].pop()
                 called_by[top_level_assignment].pop()
                 continue
