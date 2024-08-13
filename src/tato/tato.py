@@ -19,7 +19,7 @@ class ReorderFileCodemod(codemod.VisitorBasedCodemodCommand):
         3. Classes (leaf classes first)
         4. Functions (leaf functions last)
 
-    Ocassionally, due to Python semantics, we'll have to break this order.
+    Occasionally, due to Python semantics, we'll have to break this order.
     In that case, we'll organize the file into sections, where each section
     is ordered.
     """
