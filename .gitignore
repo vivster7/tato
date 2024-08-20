@@ -2,3 +2,5 @@ __pycache__
 dist
 .mypy_cache
 .pytest_cache
+
+tests/**/*.sqlite3
