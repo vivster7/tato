@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+
+## [0.2.0] - 2024-08-21
+
+### Added
+- Added a `tato index` command to create an index of symbol definitions and references.
+- Added a `tato format --with-index <path>` to use index when ordering symbols. A symbol used more is "more important" and sorts earlier in the file.
+
+Indexer notes:
+The indexer currently does a two pass algorithm. It finds all definitions. 
+Then, it passes over the source files again to find references. 
+A reference can have more than one definition (e.g. `if True: a = 1 else: a = 2`),
+so a many-to-many table stores the relationships (called 'DefRef').
+Imported definitions are tracked with the 'DefDef' table and is recursively
+searched to find the original definition.
+
+### Changed
+- `tato` command is now `tato format`
+
+### Fixed
+- Unaccessed symbols correctly sort to the top of files (assuming these symbols are exported and used elsewhere, so they are "important")
+
+
 ## [0.1.4] - 2024-08-12
 
 ### Fixed
