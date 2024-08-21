@@ -48,19 +48,24 @@ class ReorderFileCodemod(codemod.VisitorBasedCodemodCommand):
         )
 
     def __init__(
-        self, context: codemod.CodemodContext, index_path: Optional[str] = None
+        self, context: codemod.CodemodContext, with_index: Optional[str] = None
     ) -> None:
         super().__init__(context)
-        self.index = Index(Path(index_path)) if index_path else NoopIndex(Path("."))
+        self.with_index = with_index
 
     def leave_Module(
         self, original_node: cst.Module, updated_node: cst.Module
     ) -> cst.Module:
-        graphs = create_graphs(original_node, self.metadata, self.index)
+        # Connect to index (database) inside of the transform to avoid pickling
+        # the db connections across forked processes.
+        index = (
+            Index(Path(self.with_index)) if self.with_index else NoopIndex(Path("."))
+        )
+        graphs = create_graphs(original_node, self.metadata, index)
         topo_sorted_called_by = topological_sort(graphs["called_by"])
         topo_sorted_calls = topological_sort(graphs["calls"])
         imports, sections = categorize_sections(
-            topo_sorted_called_by, self.index, topo_sorted_calls
+            topo_sorted_called_by, index, topo_sorted_calls
         )
 
         return updated_node.with_changes(
