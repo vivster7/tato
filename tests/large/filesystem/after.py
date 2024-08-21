@@ -4,7 +4,7 @@ import glob
 import os
 import tarfile
 import tempfile
-
+     
 
 class FileSystem(abc.ABC):
     """Interface for file systems."""
@@ -36,6 +36,26 @@ class FileSystem(abc.ABC):
         directory tree, return the relative path; otherwise return None.
         """
         return None
+
+
+class StoredFileSystem(FileSystem):
+    """File system based on a file list."""
+
+    def __init__(self, files):
+        self.files = files
+        self.dirs = {os.path.dirname(f) for f in files}
+
+    def isfile(self, path):
+        return path in self.files
+
+    def isdir(self, path):
+        return path in self.dirs
+
+    def read(self, path):
+        return self.files[path]
+
+    def refer_to(self, path):
+        return path
 
 
 class RemappingFileSystem(FileSystem, abc.ABC):
@@ -126,24 +146,22 @@ class FileSystemError(Exception):
     pass
 
 
-class StoredFileSystem(FileSystem):
-    """File system based on a file list."""
+class Path(object):
+    def __init__(self, paths=None):
+        self.paths = paths if paths else []
 
-    def __init__(self, files):
-        self.files = files
-        self.dirs = {os.path.dirname(f) for f in files}
+    def add_path(self, path, kind="os"):
+        if kind == "os":
+            path = OSFileSystem(path)
+        elif kind == "pyi":
+            path = PYIFileSystem(OSFileSystem(path))
+        else:
+            raise FileSystemError("Unrecognized filesystem type: ", kind)
+        self.paths.append(path)
 
-    def isfile(self, path):
-        return path in self.files
-
-    def isdir(self, path):
-        return path in self.dirs
-
-    def read(self, path):
-        return self.files[path]
-
-    def refer_to(self, path):
-        return path
+    def add_fs(self, fs):
+        assert isinstance(fs, FileSystem), "Unrecognised filesystem: %r" % fs
+        self.paths.append(fs)
 
 
 class TarFileSystem:
@@ -171,21 +189,3 @@ class TarFileSystem:
     def read_tarfile(archive_filename):
         tar = tarfile.open(archive_filename)
         return TarFileSystem(tar)
-
-
-class Path(object):
-    def __init__(self, paths=None):
-        self.paths = paths if paths else []
-
-    def add_path(self, path, kind="os"):
-        if kind == "os":
-            path = OSFileSystem(path)
-        elif kind == "pyi":
-            path = PYIFileSystem(OSFileSystem(path))
-        else:
-            raise FileSystemError("Unrecognized filesystem type: ", kind)
-        self.paths.append(path)
-
-    def add_fs(self, fs):
-        assert isinstance(fs, FileSystem), "Unrecognised filesystem: %r" % fs
-        self.paths.append(fs)

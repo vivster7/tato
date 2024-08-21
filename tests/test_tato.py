@@ -148,10 +148,10 @@ class TestTato(TatoCodemodTest):
             ABC = [fn1(), fn2()]
         """
         after = """
+            def fn3(): pass
             def fn1(): pass
             def fn2(): pass
             ABC = [fn1(), fn2()]
-            def fn3(): pass
             """
         self.assertCodemodWithCache(before, after)
 
@@ -240,6 +240,31 @@ class TestTato(TatoCodemodTest):
 
             def first():
                 pass
+            def second():
+                pass
+        """
+        self.assertCodemodWithCache(before, after)
+    
+    def test_function_order_by_deps_last2(self) -> None:
+        before = """
+            def main():
+                first()
+                second()
+
+            def second():
+                pass
+                
+            def first():
+                pass
+        """
+        after = """
+            def main():
+                first()
+                second()
+
+            def first():
+                pass
+
             def second():
                 pass
         """

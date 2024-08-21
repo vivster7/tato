@@ -94,9 +94,11 @@ def create_graphs(
         raise Exception("No global scope found")
 
     for assignment in globalscope.assignments:
+        if not isinstance(assignment, Assignment):
+            continue
+        if len(assignment.references) == 0:
+            first_access[find_top_level_node(assignment.node)] = (0, 0)
         for access in assignment.references:
-            if not isinstance(assignment, Assignment):
-                continue
             top_level_assignment = find_top_level_node(assignment.node)
             top_level_access = find_top_level_node(access.node)
 

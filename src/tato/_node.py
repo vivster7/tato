@@ -34,4 +34,9 @@ class OrderedNode:
             # Try and keep imports sorted by their previous location.
             return (self.node_type, self.prev_body_index)
         else:
-            return (self.node_type, self.first_access, self.prev_body_index)
+            return (
+                self.node_type,
+                -1 * self.num_references,  # more reference should come first
+                self.first_access,
+                self.prev_body_index,
+            )
