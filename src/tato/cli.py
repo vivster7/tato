@@ -1,32 +1,43 @@
 import argparse
 import sys
+from pathlib import Path
 
 import libcst.tool
 from libcst._version import __version__ as libcst_version
 
 from tato.__about__ import __version__
+from tato.index.index import Index
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Tato CLI tool")
-    parser.add_argument("codemod", nargs="?", help="Alias for tato command")
-    parser.add_argument("paths", nargs="*", help="Paths to process")
-    parser.add_argument("--package", nargs="?", help="Package to process")
     parser.add_argument(
         "--version",
         action="version",
         version=f"tato version {__version__} (libcst version {libcst_version})",
     )
 
+    subparsers = parser.add_subparsers(dest="command", required=True)
+
+    # Index subcommand
+    index_parser = subparsers.add_parser("index", help="Create an index")
+    index_parser.add_argument("path", help="Package to index")
+
+    # Codemod subcommand
+    codemod_parser = subparsers.add_parser("codemod", help="Run codemod command")
+    codemod_parser.add_argument("paths", nargs="+", help="Paths to process")
+    codemod_parser.add_argument("--with-index", help="Path to index file")
+
     args = parser.parse_args()
 
-    if not args.paths:
-        parser.print_usage()
-        return
-
-    # The help text from libcst spits out 'usage: tato codemod' and exposes the
-    # underlying libcst configuration. We can reuse that for now.
-    libcst_args = ["codemod", "-x", "tato.tato.ReorderFileCodemod"]
-    if args.package:
-        libcst_args.extend(["--package", args.package])
-    sys.exit(libcst.tool.main("tato", libcst_args + args.paths))
+    # Your command handling logic here
+    if args.command == "index":
+        Index(Path(args.path)).create()
+        sys.exit(0)
+    elif args.command == "codemod":
+        # The help text from libcst spits out 'usage: tato codemod' and exposes the
+        # underlying libcst configuration. We can reuse that for now.
+        libcst_args = ["codemod", "-x", "tato.tato.ReorderFileCodemod"]
+        if args.package:
+            libcst_args.extend(["--package", args.package])
+        sys.exit(libcst.tool.main("tato", libcst_args + args.paths))

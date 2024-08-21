@@ -45,9 +45,9 @@ class Index:
         )
         return res.fetchone()[0]
 
-    def create(self, package: Path) -> None:
+    def create(self) -> None:
         self.db.init_schema()
-        defs, refs, defrefs, defdefs = collect_definitions_and_references(package)
+        defs, refs, defrefs, defdefs = collect_definitions_and_references(self.package)
         self.db.bulk_insert(defs + refs + defrefs + defdefs)
         self._has_index = True
 
