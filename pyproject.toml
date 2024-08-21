@@ -58,7 +58,7 @@ extra-dependencies = [
 ]
 [tool.hatch.envs.dev.scripts]
 check = "mypy --install-types --non-interactive {args:src/tato tests}"
-test = "pytest {args:tests}"
+test = "pytest {args:tests src/tato/**/__tests__}"
 
 [tool.coverage.run]
 source_pkgs = ["tato", "tests"]
