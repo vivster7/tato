@@ -40,18 +40,18 @@ class ReorderFileCodemod(codemod.VisitorBasedCodemodCommand):
     @staticmethod
     def add_args(arg_parser: argparse.ArgumentParser) -> None:
         arg_parser.add_argument(
-            "--package",
-            dest="package",
-            metavar="PACKAGE",
-            help="Package name to check for an index",
+            "--with-index",
+            dest="with_index",
+            metavar="INDEX",
+            help="Path to index file",
             type=str,
         )
 
     def __init__(
-        self, context: codemod.CodemodContext, package: Optional[str] = None
+        self, context: codemod.CodemodContext, index_path: Optional[str] = None
     ) -> None:
         super().__init__(context)
-        self.index = Index(Path(package)) if package else NoopIndex(Path("."))
+        self.index = Index(Path(index_path)) if index_path else NoopIndex(Path("."))
 
     def leave_Module(
         self, original_node: cst.Module, updated_node: cst.Module

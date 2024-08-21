@@ -5,11 +5,11 @@ from tato.index._db import DB
 
 
 class Index:
-    package: Path
+    index_path: Path
 
-    def __init__(self, package: Path):
-        self.package = package
-        self.db = DB(package.joinpath("tato-index.sqlite3"))
+    def __init__(self, index_path: Path):
+        self.index_path = index_path
+        self.db = DB(index_path)
         self._has_index = self.db.path.exists() and self.db.path.stat().st_size > 0
 
     def count_references(self, fully_qualified_name: str) -> int:
@@ -47,14 +47,16 @@ class Index:
 
     def create(self) -> None:
         self.db.init_schema()
-        defs, refs, defrefs, defdefs = collect_definitions_and_references(self.package)
+        defs, refs, defrefs, defdefs = collect_definitions_and_references(
+            self.index_path
+        )
         self.db.bulk_insert(defs + refs + defrefs + defdefs)
         self._has_index = True
 
 
 class NoopIndex(Index):
     def __init__(self, package: Path):
-        self.package = package
+        self.index_path = package
 
     def count_references(self, fully_qualified_name: str) -> int:
         return 0

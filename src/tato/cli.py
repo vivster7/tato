@@ -41,6 +41,6 @@ def main() -> None:
         # The help text from libcst spits out 'usage: tato codemod' and exposes the
         # underlying libcst configuration. We can reuse that for now.
         libcst_args = ["codemod", "-x", "tato.tato.ReorderFileCodemod"]
-        if args.package:
-            libcst_args.extend(["--package", args.package])
+        if args.with_index:
+            libcst_args.extend(["--with-index", args.with_index])
         sys.exit(libcst.tool.main("tato", libcst_args + args.paths))
