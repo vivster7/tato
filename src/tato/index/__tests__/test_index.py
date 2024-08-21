@@ -7,7 +7,7 @@ PARENT = Path(__file__).parent
 
 def test_indexer():
     package = PARENT.joinpath("data/index/test1")
-    dbpath = package.joinpath("tato.sqlite3")
+    dbpath = package.joinpath("tato-index.sqlite3")
     if dbpath.exists():
         dbpath.unlink()
 

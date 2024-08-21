@@ -9,7 +9,7 @@ class Index:
 
     def __init__(self, package: Path):
         self.package = package
-        self.db = DB(package.joinpath("tato.sqlite3"))
+        self.db = DB(package.joinpath("tato-index.sqlite3"))
         self._has_index = self.db.path.exists() and self.db.path.stat().st_size > 0
 
     def count_references(self, fully_qualified_name: str) -> int:
