@@ -2,16 +2,6 @@ import dataclasses
 
 
 @dataclasses.dataclass(frozen=True)
-class File:
-    id: str
-    path: str
-    module: str
-    package: str
-
-    # Prefer using filecache to create this object.
-
-
-@dataclasses.dataclass(frozen=True)
 class Definition:
     id: str
     file_id: str
@@ -34,6 +24,16 @@ class DefRef:
     id: str
     definition_id: str
     reference_id: str
+
+
+@dataclasses.dataclass(frozen=True)
+class File:
+    id: str
+    path: str
+    module: str
+    package: str
+
+    # Prefer using filecache to create this object.
 
 
 @dataclasses.dataclass(frozen=True)

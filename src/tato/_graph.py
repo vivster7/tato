@@ -31,6 +31,39 @@ class Graphs(TypedDict):
     called_by: Graph
 
 
+def topological_sort(graph: Graph) -> list[OrderedNode]:
+    """
+    Sorts a graph of definitions into a topological order.
+
+    Example:
+    >>> topological_sort({'a': {'b'}, 'b': {'c'}, 'c': set(), 'd': set()})
+    ['d', 'c', 'b', 'a']
+    """
+
+    topo_sorted = []
+    innodes: defaultdict[OrderedNode, int] = defaultdict(int)
+    for src, dsts in graph.items():
+        innodes[src]
+        # Ignore usages of imports when sorting.
+        if src.node_type == NodeType.IMPORT:
+            continue
+        for dst in dsts:
+            innodes[dst] += 1
+
+    # Using a heap (sorted list) ensures each section is ordered and each time
+    # we see something out of order, we can start a new section.
+    heap = [node for node, count in innodes.items() if count == 0]
+    heapq.heapify(heap)
+    while heap:
+        node = heapq.heappop(heap)
+        topo_sorted.append(node)
+        for dst in graph[node]:
+            innodes[dst] -= 1
+            if innodes[dst] == 0:
+                heapq.heappush(heap, dst)
+    return topo_sorted
+
+
 def create_graphs(
     module: cst.Module,
     metadata: Mapping[ProviderT, Mapping[cst.CSTNode, object]],
@@ -162,39 +195,6 @@ def create_graphs(
             lookup[k]: set(lookup[v] for v in vs) for k, vs in called_by.items()
         },
     }
-
-
-def topological_sort(graph: Graph) -> list[OrderedNode]:
-    """
-    Sorts a graph of definitions into a topological order.
-
-    Example:
-    >>> topological_sort({'a': {'b'}, 'b': {'c'}, 'c': set(), 'd': set()})
-    ['d', 'c', 'b', 'a']
-    """
-
-    topo_sorted = []
-    innodes: defaultdict[OrderedNode, int] = defaultdict(int)
-    for src, dsts in graph.items():
-        innodes[src]
-        # Ignore usages of imports when sorting.
-        if src.node_type == NodeType.IMPORT:
-            continue
-        for dst in dsts:
-            innodes[dst] += 1
-
-    # Using a heap (sorted list) ensures each section is ordered and each time
-    # we see something out of order, we can start a new section.
-    heap = [node for node, count in innodes.items() if count == 0]
-    heapq.heapify(heap)
-    while heap:
-        node = heapq.heappop(heap)
-        topo_sorted.append(node)
-        for dst in graph[node]:
-            innodes[dst] -= 1
-            if innodes[dst] == 0:
-                heapq.heappush(heap, dst)
-    return topo_sorted
 
 
 def _has_cycles(graph: dict[TopLevelNode, list[TopLevelNode]]) -> bool:
