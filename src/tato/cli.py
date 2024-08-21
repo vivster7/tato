@@ -35,7 +35,9 @@ def main() -> None:
         # chdir so the fully_qualified_name of the module matches Python's
         p = Path(args.path)
         with paths.chdir(p.parent):
-            Index(Path(p.name)).create()
+            index_path = Path(p.name).joinpath("tato-index.sqlite3")
+            index_path.unlink(missing_ok=True)
+            Index(index_path).create()
         sys.exit(0)
     elif args.command == "format":
         # The help text from libcst spits out 'usage: tato codemod' and exposes the

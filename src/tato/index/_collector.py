@@ -7,17 +7,18 @@ from libcst.codemod import CodemodContext
 from libcst.helpers import calculate_module_and_package
 from libcst.metadata import FullRepoManager, FullyQualifiedNameProvider
 
+from tato.index import _filecache
 from tato.index._definition import (
     DefinitionCollector,
     ReferenceCollector,
 )
-from tato.index._types import DefDef, Definition, DefRef, Reference
+from tato.index._types import DefDef, Definition, DefRef, File, Reference
 from tato.lib.uuid import uuid7str
 
 
 def collect_definitions_and_references(
     package: Path,
-) -> tuple[list[Definition], list[Reference], list[DefRef], list[DefDef]]:
+) -> tuple[list[File], list[Definition], list[Reference], list[DefRef], list[DefDef]]:
     manager = FullRepoManager(
         str(package.parent),
         paths=[str(p) for p in package.rglob("*.py")],
@@ -38,7 +39,7 @@ def collect_definitions_and_references(
     ]
 
     references, defrefs = _collect_references(manager, package, definitions_map)
-    return definitions, references, defrefs, defdefs
+    return list(_filecache.files.values()), definitions, references, defrefs, defdefs
 
 
 def _collect_definitions(

@@ -47,10 +47,10 @@ class Index:
 
     def create(self) -> None:
         self.db.init_schema()
-        defs, refs, defrefs, defdefs = collect_definitions_and_references(
-            self.index_path
+        files, defs, refs, defrefs, defdefs = collect_definitions_and_references(
+            self.index_path.parent
         )
-        self.db.bulk_insert(defs + refs + defrefs + defdefs)
+        self.db.bulk_insert(files + defs + refs + defrefs + defdefs)
         self._has_index = True
 
 
