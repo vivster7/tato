@@ -25,9 +25,9 @@ def main() -> None:
     index_parser.add_argument("path", help="Package to index")
 
     # Codemod subcommand
-    codemod_parser = subparsers.add_parser("codemod", help="Run codemod command")
-    codemod_parser.add_argument("paths", nargs="+", help="Paths to process")
-    codemod_parser.add_argument("--with-index", help="Path to index file")
+    format_parser = subparsers.add_parser("format", help="Run format command")
+    format_parser.add_argument("paths", nargs="+", help="Paths to process")
+    format_parser.add_argument("--with-index", help="Path to index file")
 
     args = parser.parse_args()
 
@@ -37,7 +37,7 @@ def main() -> None:
         with paths.chdir(p.parent):
             Index(Path(p.name)).create()
         sys.exit(0)
-    elif args.command == "codemod":
+    elif args.command == "format":
         # The help text from libcst spits out 'usage: tato codemod' and exposes the
         # underlying libcst configuration. We can reuse that for now.
         libcst_args = ["codemod", "-x", "tato.tato.ReorderFileCodemod"]
