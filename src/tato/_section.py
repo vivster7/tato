@@ -1,15 +1,8 @@
 from dataclasses import dataclass, field
 
-import libcst as cst
-from libcst.metadata import (
-    ParentNodeProvider,
-    PositionProvider,
-    ScopeProvider,
-)
-
-from tato._graph import create_graphs, topological_sort
 from tato._node import OrderedNode
 from tato._node_type import NodeType
+from tato.index.index import Index
 
 
 @dataclass
@@ -45,6 +38,9 @@ class SectionsBuilder:
     section.
     """
 
+    index: Index
+    topo_sorted_calls: list[OrderedNode]
+
     module_docstring: list[OrderedNode] = field(default_factory=list)
     imports: list[OrderedNode] = field(default_factory=list)
     sections: list[Section] = field(default_factory=list)
@@ -78,25 +74,15 @@ class SectionsBuilder:
         """Sort functions by call hierarchy order."""
         for section in self.sections:
             if section._functions:
-                temp_module = cst.parse_module("")
-                temp_module = temp_module.with_changes(
-                    body=[n.node for n in section._functions]
+                section._functions = sorted(
+                    section._functions, key=lambda n: self.topo_sorted_calls.index(n)
                 )
-                wrapper = cst.MetadataWrapper(temp_module, unsafe_skip_copy=True)
-                metadata = wrapper.resolve_many(
-                    [
-                        ScopeProvider,
-                        ParentNodeProvider,
-                        PositionProvider,
-                    ]
-                )
-                graphs = create_graphs(temp_module, metadata)
-                topo_nodes = topological_sort(graphs["calls"])
-                section._functions = [n for n in topo_nodes]
 
 
 def categorize_sections(
-    topo_sorted: list[OrderedNode],
+    topo_sorted_called_by: list[OrderedNode],
+    index: Index,
+    topo_sorted_calls: list[OrderedNode],
 ) -> tuple[list[OrderedNode], list[Section]]:
     """Categorize into: imports + sections.
 
@@ -111,9 +97,9 @@ def categorize_sections(
 
     Functions get resorted by call hierarchy order when sealed.
     """
-    builder = SectionsBuilder()
+    builder = SectionsBuilder(index, topo_sorted_calls)
 
-    for node in topo_sorted:
+    for node in topo_sorted_called_by:
         builder.add(node)
     builder.seal()
 

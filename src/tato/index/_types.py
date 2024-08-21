@@ -34,3 +34,10 @@ class DefRef:
     id: str
     definition_id: str
     reference_id: str
+
+
+@dataclasses.dataclass(frozen=True)
+class DefDef:
+    id: str
+    from_definition_id: str
+    to_definition_id: str

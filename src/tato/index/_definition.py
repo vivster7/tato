@@ -2,6 +2,10 @@ from typing import DefaultDict
 
 import libcst as cst
 from libcst.codemod import ContextAwareVisitor
+from libcst.helpers import (
+    get_absolute_module_for_import_or_raise,
+    get_full_name_for_node_or_raise,
+)
 from libcst.metadata import (
     Assignment,
     CodeRange,
@@ -11,8 +15,8 @@ from libcst.metadata import (
     ScopeProvider,
 )
 
-from tato.indexer._filecache import get_or_create_file
-from tato.indexer._types import DefRef, Definition, Reference
+from tato.index._filecache import get_or_create_file
+from tato.index._types import Definition, DefRef, Reference
 from tato.lib.uuid import uuid7str
 
 
@@ -26,6 +30,8 @@ class DefinitionCollector(ContextAwareVisitor):
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.definitions: list[Definition] = []
+        # list[fully_qualified_name -> fully_qualified_name]
+        self.partial_defdefs: list[tuple[str, str]] = []
 
     def visit_Module(self, node: cst.Module) -> bool:
         f = get_or_create_file(self.context)
@@ -49,6 +55,29 @@ class DefinitionCollector(ContextAwareVisitor):
                     start_col=position.start.column,
                 )
                 self.definitions.append(d)
+            elif isinstance(assignment.node, cst.ImportFrom):
+                if isinstance(assignment.node.names, cst.ImportStar):
+                    # Skip import star references for now.
+                    continue
+                for name in assignment.node.names:
+                    d = Definition(
+                        id=uuid7str(),
+                        file_id=f.id,
+                        fully_qualified_name=f"{f.module}.{get_full_name_for_node_or_raise(name.name)}",
+                        start_line=position.start.line,
+                        start_col=position.start.column,
+                    )
+                    self.definitions.append(d)
+                    self.partial_defdefs.append(
+                        (
+                            f"{get_absolute_module_for_import_or_raise(f.module, assignment.node)}.{get_full_name_for_node_or_raise(name.name)}",
+                            d.fully_qualified_name,
+                        )
+                    )
+            elif isinstance(assignment.node, cst.Import):
+                # TODO:
+                pass
+
         return False
 
 

@@ -1,8 +1,9 @@
-from libcst.codemod import CodemodTest
 from tato.tato import ReorderFileCodemod
 
+from testlib.codemod import TatoCodemodTest
 
-class TestTato(CodemodTest):
+
+class TestTato(TatoCodemodTest):
     TRANSFORM = ReorderFileCodemod
 
     def test_unknown_constants_ordering(self) -> None:
@@ -20,7 +21,10 @@ class TestTato(CodemodTest):
                 PEANUT = 2
             BUTTER = PEANUT * 1
         """
-        self.assertCodemod(before, after)
+        self.assertCodemodWithCache(
+            before,
+            after,
+        )
 
     def test_constants_unknown_ordering(self) -> None:
         before = """
@@ -37,7 +41,7 @@ class TestTato(CodemodTest):
             else:
                 WATER = FLOWER + 1
         """
-        self.assertCodemod(before, after)
+        self.assertCodemodWithCache(before, after)
 
     def test_multiple_symbols(self) -> None:
         before = """
@@ -83,7 +87,7 @@ class TestTato(CodemodTest):
                 pass
         """
 
-        self.assertCodemod(before, after)
+        self.assertCodemodWithCache(before, after)
 
     def test_imports_index_are_ignored(self) -> None:
         before = """
@@ -96,7 +100,7 @@ class TestTato(CodemodTest):
             def fn(): pass
             constant = abc.g() + fn()
         """
-        self.assertCodemod(before, after)
+        self.assertCodemodWithCache(before, after)
 
     def test_imports_include_type_checking_blocks(self) -> None:
         before = """
@@ -115,7 +119,7 @@ class TestTato(CodemodTest):
 
             logger = logging.getLogger(__name__)
         """
-        self.assertCodemod(before, after)
+        self.assertCodemodWithCache(before, after)
 
     def test_module_docstring_appears_before_imports(self) -> None:
         before = """
@@ -134,7 +138,7 @@ class TestTato(CodemodTest):
             \"\"\"
             import logging
         """
-        self.assertCodemod(before, after)
+        self.assertCodemodWithCache(before, after)
 
     def test_constants_placed_after_all_used_definitions(self) -> None:
         before = """
@@ -149,7 +153,7 @@ class TestTato(CodemodTest):
             ABC = [fn1(), fn2()]
             def fn3(): pass
             """
-        self.assertCodemod(before, after)
+        self.assertCodemodWithCache(before, after)
 
     def test_readme_example(self) -> None:
         before = """
@@ -181,7 +185,7 @@ class TestTato(CodemodTest):
             def _stripped_str_to_int(s):
                 return int(s.strip())
         """
-        self.assertCodemod(before, after)
+        self.assertCodemodWithCache(before, after)
 
     def test_classes_with_cycle(self) -> None:
         before = """
@@ -200,7 +204,7 @@ class TestTato(CodemodTest):
                 def __init__(self):
                     self.a = A()
         """
-        self.assertCodemod(before, after)
+        self.assertCodemodWithCache(before, after)
 
     def test_sections_simple(self) -> None:
         before = """
@@ -215,7 +219,7 @@ class TestTato(CodemodTest):
             class Toats: pass
             def eggs(): pass
             """
-        self.assertCodemod(before, after)
+        self.assertCodemodWithCache(before, after)
 
     def test_function_order_by_deps_last(self) -> None:
         before = """
@@ -239,7 +243,7 @@ class TestTato(CodemodTest):
             def second():
                 pass
         """
-        self.assertCodemod(before, after)
+        self.assertCodemodWithCache(before, after)
 
     def test_subsections_1(self) -> None:
         before = """
@@ -256,7 +260,7 @@ class TestTato(CodemodTest):
             WATER = water()
             def milk(c: Cookie): water(c)
         """
-        self.assertCodemod(before, after)
+        self.assertCodemodWithCache(before, after)
 
     def test_functions_decorator_sorts_first(self) -> None:
         before = """
@@ -279,7 +283,7 @@ class TestTato(CodemodTest):
             def fn():
                 pass
         """
-        self.assertCodemod(before, after)
+        self.assertCodemodWithCache(before, after)
 
     def test_functions_as_default_args_in_globalscope(self) -> None:
         before = """
@@ -290,7 +294,7 @@ class TestTato(CodemodTest):
             def fn(): pass
             def fn2(f = fn): pass
         """
-        self.assertCodemod(before, after)
+        self.assertCodemodWithCache(before, after)
 
     def test_classes_decorated(self) -> None:
         before = """
@@ -303,11 +307,7 @@ class TestTato(CodemodTest):
             @decorator
             class A: pass
         """
-        self.assertCodemod(before, after)
-
-
-class TestPlayground(CodemodTest):
-    TRANSFORM = ReorderFileCodemod
+        self.assertCodemodWithCache(before, after)
 
     def test_playground(self) -> None:
         before = """
@@ -320,4 +320,4 @@ class TestPlayground(CodemodTest):
             @decorator
             class A: pass
         """
-        self.assertCodemod(before, after)
+        self.assertCodemodWithCache(before, after)

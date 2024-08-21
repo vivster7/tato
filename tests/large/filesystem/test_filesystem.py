@@ -1,10 +1,11 @@
 from pathlib import Path
 
-from libcst.codemod import CodemodTest
 from tato.tato import ReorderFileCodemod
 
+from testlib.codemod import TatoCodemodTest
 
-class TestFilesystem(CodemodTest):
+
+class TestFilesystem(TatoCodemodTest):
     TRANSFORM = ReorderFileCodemod
 
     def test_large_filesystem(self) -> None:
@@ -13,4 +14,4 @@ class TestFilesystem(CodemodTest):
         before = (folder / "before.py").read_text()
         after = (folder / "after.py").read_text()
 
-        self.assertCodemod(before, after)
+        self.assertCodemodWithCache(before, after)

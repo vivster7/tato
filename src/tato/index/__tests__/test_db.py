@@ -1,13 +1,14 @@
+from pathlib import Path
 from tempfile import NamedTemporaryFile
 
-from tato.indexer._db import DB
-from tato.indexer._types import Definition, DefRef, File, Reference
+from tato.index._db import DB
+from tato.index._types import Definition, DefRef, File, Reference
 from tato.lib.uuid import uuid7str
 
 
 def test_db():
     with NamedTemporaryFile() as f:
-        db_manager = DB(f.name)
+        db_manager = DB(Path(f.name))
         db_manager.init_schema()
 
         # Prepare objects for bulk insert

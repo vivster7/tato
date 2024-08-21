@@ -3,11 +3,11 @@ import sqlite3
 from pathlib import Path
 from typing import Any, List, Optional, Sequence, Tuple, Union
 
-from tato.indexer._types import Definition, DefRef, File, Reference
+from tato.index._types import DefDef, Definition, DefRef, File, Reference
 
 
 class DB:
-    def __init__(self, path: Union[str, Path]):
+    def __init__(self, path: Path):
         self.path = Path(path)
         self.conn = sqlite3.connect(path, detect_types=sqlite3.PARSE_DECLTYPES)
         self.conn.row_factory = sqlite3.Row
@@ -18,7 +18,7 @@ class DB:
         self.cursor.executescript(schema.read_text())
 
     def bulk_insert(
-        self, objects: Sequence[Union[File, Definition, Reference, DefRef]]
+        self, objects: Sequence[Union[File, Definition, Reference, DefRef, DefDef]]
     ) -> None:
         # Disable foreign key constraints for the duration of the transaction
         self.cursor.execute("PRAGMA foreign_keys = OFF")

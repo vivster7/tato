@@ -1,7 +1,7 @@
 import libcst as cst
 from libcst.codemod import CodemodContext
 
-from tato.indexer._types import File
+from tato.index._types import File
 from tato.lib.uuid import uuid7str
 
 files: dict[tuple[str, str, str], "File"] = {}

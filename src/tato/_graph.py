@@ -4,16 +4,21 @@ from typing import Mapping, TypedDict, cast
 
 import libcst as cst
 from libcst.metadata import (
+    Assignment,
     CodeRange,
+    FullyQualifiedNameProvider,
     ParentNodeProvider,
     PositionProvider,
     ProviderT,
+    QualifiedName,
     Scope,
     ScopeProvider,
 )
 
+from tato._debug import _debug_source_code
 from tato._node import OrderedNode, TopLevelNode
 from tato._node_type import NodeType, node_type
+from tato.index.index import Index
 
 Graph = dict[OrderedNode, set[OrderedNode]]
 
@@ -27,37 +32,44 @@ class Graphs(TypedDict):
 
 
 def create_graphs(
-    module: cst.Module, metadata: Mapping[ProviderT, Mapping[cst.CSTNode, object]]
+    module: cst.Module,
+    metadata: Mapping[ProviderT, Mapping[cst.CSTNode, object]],
+    index: Index,
 ) -> Graphs:
     """Create a graph of definitions (assignments)
 
     :: returns:
         A tuple of two graphs:
-            1. The `calls` graph is used to topologically sort most nodes in a
-               "deps-first" manner.
-            2. The `called_by` graph is used to topologically sort
+            1. The `called_by` graph is used to topologically sort most nodes in
+               a "deps-first" manner.
+            2. The `calls` graph is used to topologically sort
                the functions sections in a "deps-last" manner.
 
     Example:
         ```
-        1 def a():
-        2     b()
-        3     c()
-        4
-        5 def b():
-        6     c()
-        7
-        8 def c(): pass
+        def a():
+            b()
+            c()
+
+        def b():
+            c()
+
+        def c(): pass
         ```
-        would return:
-            calls: `{'a': {'b', 'c'}, 'b': {'c'}, 'c': set()}`
-            called_by: `{'a': {}, 'b': {'a'}, 'c': {'a', 'b'}}`
+        returns:
+        {
+            "calls": {'a': {'b', 'c'}, 'b': {'c'}, 'c': set()}
+            "called_by": {'a': {}, 'b': {'a'}, 'c': {'a', 'b'}}
+        }
 
 
     """
     scopes = cast(Mapping[cst.CSTNode, Scope], metadata[ScopeProvider]).values()
     parents = cast(Mapping[cst.CSTNode, cst.CSTNode], metadata[ParentNodeProvider])
     positions = cast(Mapping[cst.CSTNode, CodeRange], metadata[PositionProvider])
+    fqns = cast(
+        Mapping[cst.CSTNode, set[QualifiedName]], metadata[FullyQualifiedNameProvider]
+    )
 
     modulebodyset: set[TopLevelNode] = set(module.body)
     globalscope = next((s.globals for s in scopes if s is not None))
@@ -83,6 +95,8 @@ def create_graphs(
 
     for assignment in globalscope.assignments:
         for access in assignment.references:
+            if not isinstance(assignment, Assignment):
+                continue
             top_level_assignment = find_top_level_node(assignment.node)
             top_level_access = find_top_level_node(access.node)
 
@@ -100,10 +114,10 @@ def create_graphs(
                 and node_type(top_level_access) == NodeType.FUNCTION
                 and access.scope == globalscope
             ):
-                # This is.. super confusing. A decorator is called by the function it decorates (access).
-                # But when topological sorting calls for functions, the decorator must be defined before the function.
-                # In this case, the decorator "calls" the function. This needs a better / more clear concept.
-                # I'm overloading
+                # This is.. super confusing. A decorator must be defined before
+                # the function it decorates (compile time). We fake a call edge
+                # from assignment -> access so the topological function sorts
+                # the decorator first.
                 calls[top_level_assignment].append(top_level_access)
                 called_by[top_level_assignment].append(top_level_access)
             else:
@@ -123,9 +137,21 @@ def create_graphs(
                 (coderange.start.line, coderange.start.column),
             )
 
-    indexes = {node: i for i, node in enumerate(module.body)}
+    prev_line_nums = {node: i for i, node in enumerate(module.body)}
     ordered_nodes = [
-        OrderedNode.from_cst_node(node, first_access, indexes) for node in module.body
+        OrderedNode(
+            node=node,
+            node_type=node_type(node, prev_line_nums[node]),
+            num_references=(
+                0
+                if not index
+                else sum(index.count_references(fqn.name) for fqn in fqns[node])
+            ),
+            first_access=first_access[node],
+            prev_body_index=prev_line_nums[node],
+            _debug_source_code=_debug_source_code(node),
+        )
+        for node in modulebodyset
     ]
     lookup = {n.node: n for n in ordered_nodes}
     return {

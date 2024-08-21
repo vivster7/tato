@@ -1,10 +1,11 @@
 from pathlib import Path
 
-from libcst.codemod import CodemodTest
 from tato.tato import ReorderFileCodemod
 
+from testlib.codemod import TatoCodemodTest
 
-class TestAnimals(CodemodTest):
+
+class TestAnimals(TatoCodemodTest):
     TRANSFORM = ReorderFileCodemod
 
     def test_large_animal(self) -> None:
@@ -13,4 +14,4 @@ class TestAnimals(CodemodTest):
         before = (folder / "before.py").read_text()
         after = (folder / "after.py").read_text()
 
-        self.assertCodemod(before, after)
+        self.assertCodemodWithCache(before, after)

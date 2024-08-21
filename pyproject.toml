@@ -37,6 +37,16 @@ Source = "https://github.com/vivster7/tato"
 tato = "tato.cli:main"
 
 
+[tool.hatch.build.targets.sdist]
+include = ["src/"]
+exclude = [
+  "src/**/__tests__/"
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/tato"]
+
+
 [tool.hatch.version]
 path = "src/tato/__about__.py"
 

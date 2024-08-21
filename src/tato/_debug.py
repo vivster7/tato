@@ -1,8 +1,8 @@
 import libcst as cst
 
 
-def _print_code(node: cst.CSTNode) -> None:
-    """Print the code of a node. Used for debugging."""
+def _debug_source_code(node: cst.CSTNode) -> str:
+    """Return source code. Useful for debugging."""
     tree = cst.parse_module("")
     tree = tree.with_changes(body=[node])
-    print(tree.code)
+    return tree.code
