@@ -18,9 +18,8 @@ from tato.lib.uuid import uuid7str
 def collect_definitions_and_references(
     package: Path,
 ) -> tuple[list[Definition], list[Reference], list[DefRef], list[DefDef]]:
-    root_path = package.parent
     manager = FullRepoManager(
-        str(root_path),
+        str(package.parent),
         paths=[str(p) for p in package.rglob("*.py")],
         providers={FullyQualifiedNameProvider},
     )

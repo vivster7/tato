@@ -4,6 +4,7 @@ from pathlib import Path
 
 import libcst.tool
 from libcst._version import __version__ as libcst_version
+from libcst.helpers import paths
 
 from tato.__about__ import __version__
 from tato.index.index import Index
@@ -30,9 +31,11 @@ def main() -> None:
 
     args = parser.parse_args()
 
-    # Your command handling logic here
     if args.command == "index":
-        Index(Path(args.path)).create()
+        # chdir so the fully_qualified_name of the module matches Python's
+        p = Path(args.path)
+        with paths.chdir(p.parent):
+            Index(Path(p.name)).create()
         sys.exit(0)
     elif args.command == "codemod":
         # The help text from libcst spits out 'usage: tato codemod' and exposes the
