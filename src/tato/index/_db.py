@@ -20,28 +20,48 @@ class DB:
     def bulk_insert(
         self, objects: Sequence[Union[File, Definition, Reference, DefRef, DefDef]]
     ) -> None:
-        # Disable foreign key constraints for the duration of the transaction
+        # Disable foreign key constraints
         self.cursor.execute("PRAGMA foreign_keys = OFF")
 
+        batch_size = 5000
+        total_inserted = 0
+
         try:
-            self.conn.execute("BEGIN TRANSACTION")
+            for i in range(0, len(objects), batch_size):
+                batch = objects[i:i+batch_size]
+                
+                self.conn.execute("BEGIN TRANSACTION")
 
-            for obj in objects:
-                table_name = type(obj).__name__
-                data = dataclasses.asdict(obj)
-                columns = ", ".join(data.keys())
-                placeholders = ", ".join("?" * len(data))
-                query = f"INSERT INTO {table_name} ({columns}) VALUES ({placeholders})"
-                self.cursor.execute(query, tuple(data.values()))
+                # Group objects by type
+                grouped_objects = {}
+                for obj in batch:
+                    table_name = type(obj).__name__
+                    if table_name not in grouped_objects:
+                        grouped_objects[table_name] = []
+                    grouped_objects[table_name].append(obj)
+                
+                # Insert each group
+                for table_name, group in grouped_objects.items():
+                    if not group:
+                        continue
+                    
+                    data = [dataclasses.asdict(obj) for obj in group]
+                    columns = ", ".join(data[0].keys())
+                    placeholders = ", ".join("?" * len(data[0]))
+                    query = f"INSERT INTO {table_name} ({columns}) VALUES ({placeholders})"
+                    
+                    self.cursor.executemany(query, [tuple(item.values()) for item in data])
 
-            # Re-enable foreign key constraints before committing
-            self.cursor.execute("PRAGMA foreign_keys = ON")
-            self.conn.commit()
+                # Commit each batch
+                self.conn.commit()
+                total_inserted += len(batch)
+                print(f"Inserted {total_inserted} objects")
+
         except Exception as e:
             self.conn.rollback()
             raise e
         finally:
-            # Ensure foreign key constraints are re-enabled even if an exception occurs
+            # Re-enable foreign key constraints
             self.cursor.execute("PRAGMA foreign_keys = ON")
 
     def bulk_delete(
