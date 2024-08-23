@@ -41,6 +41,13 @@ CREATE TABLE DefDef (
     FOREIGN KEY (to_definition_id) REFERENCES Definition(id)
 );
 
+CREATE TABLE PartialDefDef (
+    from_qual_name TEXT NOT NULL,
+    to_qual_name TEXT NOT NULL,
+    PRIMARY KEY (from_qual_name, to_qual_name)
+);
+
+
 -- Indexes for better query performance
 CREATE INDEX idx_file_path ON File(path);
 CREATE INDEX idx_definition_file_id ON Definition(file_id);

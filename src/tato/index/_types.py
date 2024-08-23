@@ -41,3 +41,9 @@ class DefDef:
     id: str
     from_definition_id: str
     to_definition_id: str
+
+
+@dataclasses.dataclass(frozen=True)
+class PartialDefDef:
+    from_qual_name: str
+    to_qual_name: str

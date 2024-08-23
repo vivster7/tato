@@ -3,7 +3,7 @@ import sqlite3
 from pathlib import Path
 from typing import Any, List, Optional, Sequence, Tuple, Union
 
-from tato.index._types import DefDef, Definition, DefRef, File, Reference
+from tato.index._types import DefDef, Definition, DefRef, File, PartialDefDef, Reference
 
 
 class DB:
@@ -18,7 +18,10 @@ class DB:
         self.cursor.executescript(schema.read_text())
 
     def bulk_insert(
-        self, objects: Sequence[Union[File, Definition, Reference, DefRef, DefDef]]
+        self,
+        objects: Sequence[
+            Union[File, Definition, Reference, DefRef, DefDef, PartialDefDef]
+        ],
     ) -> None:
         # Disable foreign key constraints
         self.cursor.execute("PRAGMA foreign_keys = OFF")
@@ -28,8 +31,8 @@ class DB:
 
         try:
             for i in range(0, len(objects), batch_size):
-                batch = objects[i:i+batch_size]
-                
+                batch = objects[i : i + batch_size]
+
                 self.conn.execute("BEGIN TRANSACTION")
 
                 # Group objects by type
@@ -39,18 +42,22 @@ class DB:
                     if table_name not in grouped_objects:
                         grouped_objects[table_name] = []
                     grouped_objects[table_name].append(obj)
-                
+
                 # Insert each group
                 for table_name, group in grouped_objects.items():
                     if not group:
                         continue
-                    
+
                     data = [dataclasses.asdict(obj) for obj in group]
                     columns = ", ".join(data[0].keys())
                     placeholders = ", ".join("?" * len(data[0]))
-                    query = f"INSERT INTO {table_name} ({columns}) VALUES ({placeholders})"
-                    
-                    self.cursor.executemany(query, [tuple(item.values()) for item in data])
+                    query = (
+                        f"INSERT INTO {table_name} ({columns}) VALUES ({placeholders})"
+                    )
+
+                    self.cursor.executemany(
+                        query, [tuple(item.values()) for item in data]
+                    )
 
                 # Commit each batch
                 self.conn.commit()

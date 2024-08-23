@@ -1,7 +1,13 @@
 from pathlib import Path
 
-from tato.index._collector import collect_definitions_and_references
+from libcst.codemod import CodemodContext, parallel_exec_transform_with_prettyprint
+from libcst.metadata import FullRepoManager
+
+from tato._debug import _measure_time
+from tato.index._collector import collect_files
+from tato.index._controller import find_defdef
 from tato.index._db import DB
+from tato.index._definition import DefinitionCollector, ReferenceCollector
 
 
 class Index:
@@ -47,11 +53,39 @@ class Index:
         return res.fetchone()[0]
 
     def create(self) -> None:
-        self.db.init_schema()
-        files, defs, refs, defrefs, defdefs = collect_definitions_and_references(
-            self.index_path.parent
+        with _measure_time("Creating index..."):
+            self.db.init_schema()
+
+        package = self.index_path.parent
+        manager = FullRepoManager(
+            str(package.parent),
+            paths=[str(p) for p in package.rglob("*.py")],
+            providers=(
+                set(DefinitionCollector.get_inherited_dependencies())
+                | set(ReferenceCollector.get_inherited_dependencies())
+            ),
         )
-        self.db.bulk_insert(files + defs + refs + defrefs + defdefs)
+        context = CodemodContext(metadata_manager=manager)
+        context.scratch["index_path"] = self.index_path
+
+        with _measure_time("Collecting files..."):
+            files = collect_files(manager, package)
+
+        with _measure_time("Inserting files into database..."):
+            self.db.bulk_insert(files)
+
+        with _measure_time("Collecting definitions..."):
+            transform = DefinitionCollector(context)
+            parallel_exec_transform_with_prettyprint(transform, manager._paths)
+
+        with _measure_time("Fixing partial defdefs"):
+            defdefs = find_defdef(self.db)
+            self.db.bulk_insert(defdefs)
+
+        with _measure_time("Collecting references..."):
+            transform = ReferenceCollector(context)
+            parallel_exec_transform_with_prettyprint(transform, manager._paths)
+
         self._has_index = True
 
 
