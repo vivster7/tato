@@ -13,7 +13,7 @@ def collect_files(manager: FullRepoManager, package: Path) -> list[File]:
         mod_pkg = calculate_module_and_package(manager.root_path, str(path))
         f = File(
             id=uuid7str(),
-            path=str(path),
+            path=path.relative_to(manager.root_path).as_posix(),
             module=mod_pkg.name,
             package=mod_pkg.package,
         )
