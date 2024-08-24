@@ -1,3 +1,6 @@
+import os
+from typing import Mapping
+
 import libcst as cst
 from libcst.codemod import ContextAwareTransformer
 from libcst.helpers import (
@@ -13,9 +16,8 @@ from libcst.metadata import (
     ScopeProvider,
 )
 
-from tato.index._controller import get_definitions, get_file
 from tato.index._db import DB
-from tato.index._types import Definition, DefRef, PartialDefDef, Reference
+from tato.index._types import Definition, DefRef, File, PartialDefDef, Reference
 from tato.lib.uuid import uuid7str
 
 
@@ -26,10 +28,18 @@ class DefinitionCollector(ContextAwareTransformer):
         FullyQualifiedNameProvider,
     )
 
+    def __init__(self, *args, files: Mapping[str, File], **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        self.files = files
+
     def visit_Module(self, node: cst.Module) -> bool:
         db = DB(self.context.scratch["index_path"])
         assert self.context.filename is not None
-        f = get_file(db, self.context.filename)
+        assert self.context.metadata_manager is not None
+        filepath = os.path.relpath(
+            self.context.filename, self.context.metadata_manager.root_path
+        )
+        f = self.files[filepath]
 
         definitions: list[Definition] = []
         partial_defdefs: set[PartialDefDef] = set()
@@ -94,10 +104,18 @@ class ReferenceCollector(ContextAwareTransformer):
         FullyQualifiedNameProvider,
     )
 
-    def __init__(self, *args, **kwargs) -> None:
+    def __init__(
+        self,
+        *args,
+        files: Mapping[str, File],
+        definitions: Mapping[str, list[Definition]],
+        **kwargs,
+    ) -> None:
         super().__init__(*args, **kwargs)
         self.references: list[Reference] = []
         self.defrefs: list[DefRef] = []
+        self.files = files
+        self.definitions = definitions
 
     def visit_Attribute(self, node: cst.Attribute) -> bool:
         return self._visit_name_attr_alike(node)
@@ -106,15 +124,18 @@ class ReferenceCollector(ContextAwareTransformer):
         return self._visit_name_attr_alike(node)
 
     def _visit_name_attr_alike(self, node: cst.CSTNode) -> bool:
-        db = DB(self.context.scratch["index_path"])
         assert self.context.filename is not None
-        f = get_file(db, self.context.filename)
+        assert self.context.metadata_manager is not None
+        filepath = os.path.relpath(
+            self.context.filename, self.context.metadata_manager.root_path
+        )
+        f = self.files[filepath]
 
         found = False
         fqnames = self.get_metadata(FullyQualifiedNameProvider, node, set())
 
         for fqname in fqnames:
-            if defs := get_definitions(db, fqname.name):
+            if defs := self.definitions.get(fqname.name):
                 found = True
                 position = cst.ensure_type(
                     self.get_metadata(PositionProvider, node), CodeRange

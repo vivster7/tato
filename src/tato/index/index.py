@@ -1,13 +1,15 @@
 from pathlib import Path
+from typing import MutableMapping
 
 from libcst.codemod import CodemodContext, parallel_exec_transform_with_prettyprint
 from libcst.metadata import FullRepoManager
 
-from tato._debug import _measure_time
+from tato._debug import measure_time
 from tato.index._collector import collect_files
-from tato.index._controller import find_defdef
+from tato.index._controller import find_defdef, get_all_definitions
 from tato.index._db import DB
 from tato.index._definition import DefinitionCollector, ReferenceCollector
+from tato.index._types import Definition
 
 
 class Index:
@@ -53,7 +55,7 @@ class Index:
         return res.fetchone()[0]
 
     def create(self) -> None:
-        with _measure_time("Creating index..."):
+        with measure_time("Creating index..."):
             self.db.init_schema()
 
         package = self.index_path.parent
@@ -68,23 +70,31 @@ class Index:
         context = CodemodContext(metadata_manager=manager)
         context.scratch["index_path"] = self.index_path
 
-        with _measure_time("Collecting files..."):
-            files = collect_files(manager, package)
+        files = collect_files(manager, package)
+        self.db.bulk_insert(files)
 
-        with _measure_time("Inserting files into database..."):
-            self.db.bulk_insert(files)
+        filemap = {f.path: f for f in files}
 
-        with _measure_time("Collecting definitions..."):
-            transform = DefinitionCollector(context)
-            parallel_exec_transform_with_prettyprint(transform, manager._paths)
+        transform = DefinitionCollector(context, files=filemap)
+        parallel_exec_transform_with_prettyprint(
+            transform, manager._paths, repo_root=str(manager.root_path)
+        )
 
-        with _measure_time("Fixing partial defdefs"):
-            defdefs = find_defdef(self.db)
-            self.db.bulk_insert(defdefs)
+        definitions = get_all_definitions(self.db)
+        defmap: MutableMapping[str, list[Definition]] = {}
+        for d in definitions:
+            if d not in defmap:
+                defmap[d.fully_qualified_name] = [d]
+            else:
+                defmap[d.fully_qualified_name].append(d)
 
-        with _measure_time("Collecting references..."):
-            transform = ReferenceCollector(context)
-            parallel_exec_transform_with_prettyprint(transform, manager._paths)
+        defdefs = find_defdef(self.db)
+        self.db.bulk_insert(defdefs)
+
+        transform = ReferenceCollector(context, files=filemap, definitions=defmap)
+        parallel_exec_transform_with_prettyprint(
+            transform, manager._paths, repo_root=str(manager.root_path)
+        )
 
         self._has_index = True
 

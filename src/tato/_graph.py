@@ -15,7 +15,7 @@ from libcst.metadata import (
     ScopeProvider,
 )
 
-from tato._debug import _debug_source_code
+from tato._debug import debug_source_code
 from tato._node import OrderedNode, TopLevelNode
 from tato._node_type import NodeType, node_type
 from tato.index.index import Index
@@ -184,7 +184,7 @@ def create_graphs(
             ),
             first_access=first_access[node],
             prev_body_index=prev_line_nums[node],
-            _debug_source_code=_debug_source_code(node),
+            _debug_source_code=debug_source_code(node),
         )
         for node in modulebodyset
     ]

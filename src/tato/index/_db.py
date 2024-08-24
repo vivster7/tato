@@ -16,6 +16,8 @@ class DB:
     def init_schema(self):
         schema = Path(__file__).parent / "db-schema.sql"
         self.cursor.executescript(schema.read_text())
+        self.cursor.execute("PRAGMA journal_mode=WAL;")
+        self.conn.commit()
 
     def bulk_insert(
         self,

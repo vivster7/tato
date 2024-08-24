@@ -27,3 +27,12 @@ def get_definitions(db: DB, fqname: str) -> list[Definition]:
     """
     res = db.cursor.execute(sql, (fqname,))
     return [Definition(**row) for row in res.fetchall()]
+
+
+def get_all_definitions(db: DB) -> list[Definition]:
+    sql = """
+    SELECT *
+    FROM Definition
+    """
+    res = db.cursor.execute(sql)
+    return [Definition(**row) for row in res.fetchall()]

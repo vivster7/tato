@@ -244,7 +244,7 @@ class TestTato(TatoCodemodTest):
                 pass
         """
         self.assertCodemodWithCache(before, after)
-    
+
     def test_function_order_by_deps_last2(self) -> None:
         before = """
             def main():
