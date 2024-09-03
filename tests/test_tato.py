@@ -187,6 +187,21 @@ class TestTato(TatoCodemodTest):
         """
         self.assertCodemodWithCache(before, after)
 
+    def test_functions_with_cycle(self) -> None:
+        before = """
+            def b():
+                a()
+            def a():
+                b()
+        """
+        after = """
+            def b():
+                a()
+            def a():
+                b()
+        """
+        self.assertCodemodWithCache(before, after)
+
     def test_classes_with_cycle(self) -> None:
         before = """
             class A:
@@ -281,9 +296,9 @@ class TestTato(TatoCodemodTest):
         after = """
             class Batter: pass
             class Cookie: pass
+            def milk(c: Cookie): water(c)
             def water(b: Batter): pass
             WATER = water()
-            def milk(c: Cookie): water(c)
         """
         self.assertCodemodWithCache(before, after)
 

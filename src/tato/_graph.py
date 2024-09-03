@@ -5,8 +5,10 @@ from typing import Mapping, TypedDict, cast
 import libcst as cst
 from libcst.metadata import (
     Assignment,
+    ClassScope,
     CodeRange,
     FullyQualifiedNameProvider,
+    GlobalScope,
     ParentNodeProvider,
     PositionProvider,
     ProviderT,
@@ -73,10 +75,10 @@ def create_graphs(
 
     :: returns:
         A tuple of two graphs:
-            1. The `called_by` graph is used to topologically sort most nodes in
-               a "deps-first" manner.
-            2. The `calls` graph is used to topologically sort
-               the functions sections in a "deps-last" manner.
+        1. The `called_by` graph is used to topologically sort most nodes in
+            a "deps-first" manner.
+        2. The `calls` graph is used to topologically sort
+            the functions sections in a "deps-last" manner.
 
     Example:
         ```
@@ -115,6 +117,7 @@ def create_graphs(
 
     calls: dict[TopLevelNode, list[TopLevelNode]] = {}
     called_by: dict[TopLevelNode, list[TopLevelNode]] = {}
+    has_cycle: dict[TopLevelNode, bool] = defaultdict(lambda: False)
     first_access: dict[TopLevelNode, tuple[int, int]] = defaultdict(
         lambda: (LARGE_NUM, LARGE_NUM)
     )
@@ -129,8 +132,13 @@ def create_graphs(
     for assignment in globalscope.assignments:
         if not isinstance(assignment, Assignment):
             continue
+
+        # Nodes that are not accessed in this file are assumed to be
+        # public exports and used by other files. Assumed to be important,
+        # so they sort to the top of the file.
         if len(assignment.references) == 0:
             first_access[find_top_level_node(assignment.node)] = (0, 0)
+
         for access in assignment.references:
             top_level_assignment = find_top_level_node(assignment.node)
             top_level_access = find_top_level_node(access.node)
@@ -143,27 +151,29 @@ def create_graphs(
             if node_type(top_level_assignment) == NodeType.IMPORT:
                 continue
 
-            # Create edge from top_level_assignment to top_level_access
+            # Accessess in globalscope/classscope happen at import time.
+            # These values MUST be topological sorted to maintain correctness.
+            if isinstance(access.scope, (GlobalScope, ClassScope)):
+                called_by[top_level_assignment].append(top_level_access)
+
+            # This is.. super confusing. A decorator must be defined before
+            # the function it decorates (compile time). We fake a call edge
+            # from assignment -> access so the topological function sorts
+            # the decorator first.
             if (
                 node_type(top_level_assignment) == NodeType.FUNCTION
                 and node_type(top_level_access) == NodeType.FUNCTION
                 and access.scope == globalscope
             ):
-                # This is.. super confusing. A decorator must be defined before
-                # the function it decorates (compile time). We fake a call edge
-                # from assignment -> access so the topological function sorts
-                # the decorator first.
                 calls[top_level_assignment].append(top_level_access)
-                called_by[top_level_assignment].append(top_level_access)
             else:
                 calls[top_level_access].append(top_level_assignment)
-                called_by[top_level_assignment].append(top_level_access)
 
-            # Skip any edges that cause cycles in the graph.
-            if _has_cycles(calls) or _has_cycles(called_by):
+            # Only the call graph should have cycles. A cycle in the called_by
+            # graph would be invalid.
+            if _mark_cycles(calls, has_cycle):
+                # Removing this node ensures we only mark new cycles in future.
                 calls[top_level_access].pop()
-                called_by[top_level_assignment].pop()
-                continue
 
             # Track first access of the assignment.
             coderange = positions[access.node]
@@ -171,6 +181,13 @@ def create_graphs(
                 first_access[top_level_assignment],
                 (coderange.start.line, coderange.start.column),
             )
+
+    # Remove all nodes with cycles from `calls`.
+    # When marking, we only removed one edge of the cycle. Here, we remove all
+    # participants in the cycle. Cycles can't be ordered well, so default to
+    # relying on original order.
+    for k, vs in calls.items():
+        calls[k] = [v for v in vs if not has_cycle[v]]
 
     prev_line_nums = {node: i for i, node in enumerate(module.body)}
     ordered_nodes = [
@@ -183,6 +200,7 @@ def create_graphs(
                 else sum(index.count_references(fqn.name) for fqn in fqns[node])
             ),
             first_access=first_access[node],
+            has_cycle=has_cycle[node],
             prev_body_index=prev_line_nums[node],
             _debug_source_code=debug_source_code(node),
         )
@@ -197,8 +215,13 @@ def create_graphs(
     }
 
 
-def _has_cycles(graph: dict[TopLevelNode, list[TopLevelNode]]) -> bool:
-    """Returns true is the graph has cycles."""
+def _mark_cycles(
+    graph: dict[TopLevelNode, list[TopLevelNode]], has_cycle: dict[TopLevelNode, bool]
+) -> bool:
+    """Returns true is the graph has cycles.
+
+    Sets has_cycle[node]=True for all nodes in the cycle.
+    """
 
     visited = set()
     stack = set()
@@ -218,5 +241,7 @@ def _has_cycles(graph: dict[TopLevelNode, list[TopLevelNode]]) -> bool:
 
     for node in graph:
         if dfs(node):
+            for n in stack:
+                has_cycle[n] = True
             return True
     return False

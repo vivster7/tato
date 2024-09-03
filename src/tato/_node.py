@@ -16,6 +16,10 @@ class OrderedNode:
     # the output.
     # Acesss is the (lineno, colno) in the original file.
     first_access: tuple[int, int]
+    # True if the node has an access cycle with another node. When true, we
+    # ignore `first_access` when repositioning the node (since neither is really
+    # first).
+    has_cycle: bool
     # Tie break should be the order of the node in the original file.
     prev_body_index: int
     _debug_source_code: str
@@ -37,6 +41,6 @@ class OrderedNode:
             return (
                 self.node_type,
                 -1 * self.num_references,  # more reference should come first
-                self.first_access,
+                self.first_access if not self.has_cycle else 0,
                 self.prev_body_index,
             )

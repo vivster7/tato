@@ -4,7 +4,25 @@ import glob
 import os
 import tarfile
 import tempfile
-     
+
+
+class Path(object):
+    def __init__(self, paths=None):
+        self.paths = paths if paths else []
+
+    def add_path(self, path, kind="os"):
+        if kind == "os":
+            path = OSFileSystem(path)
+        elif kind == "pyi":
+            path = PYIFileSystem(OSFileSystem(path))
+        else:
+            raise FileSystemError("Unrecognized filesystem type: ", kind)
+        self.paths.append(path)
+
+    def add_fs(self, fs):
+        assert isinstance(fs, FileSystem), "Unrecognised filesystem: %r" % fs
+        self.paths.append(fs)
+
 
 class FileSystem(abc.ABC):
     """Interface for file systems."""
@@ -144,24 +162,6 @@ class PYIFileSystem(ExtensionRemappingFileSystem):
 
 class FileSystemError(Exception):
     pass
-
-
-class Path(object):
-    def __init__(self, paths=None):
-        self.paths = paths if paths else []
-
-    def add_path(self, path, kind="os"):
-        if kind == "os":
-            path = OSFileSystem(path)
-        elif kind == "pyi":
-            path = PYIFileSystem(OSFileSystem(path))
-        else:
-            raise FileSystemError("Unrecognized filesystem type: ", kind)
-        self.paths.append(path)
-
-    def add_fs(self, fs):
-        assert isinstance(fs, FileSystem), "Unrecognised filesystem: %r" % fs
-        self.paths.append(fs)
 
 
 class TarFileSystem:

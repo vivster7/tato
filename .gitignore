@@ -6,3 +6,4 @@ dist
 
 tests/**/*.sqlite3
 **/__tests__/**/*.sqlite3
+.aider*

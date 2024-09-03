@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- Changed order algorithm:
+    1) The first pass only uses import time dependencies (global scope + class scope).
+    2) Nodes that participate in cycles are ignored.
 
 ## [0.2.0] - 2024-08-21
 
