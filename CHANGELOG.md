@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.1] - 2024-09-04
+
+### Added
+- Added support for TATO_DEBUG_EXPLAIN=1 to include explanations of the sorted code.
+
+
 ### Changed
 - Changed order algorithm:
     1) The first pass only uses import time dependencies (global scope + class scope).
