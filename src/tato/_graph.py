@@ -115,6 +115,7 @@ def create_graphs(
             node = parents[node]
         return cast(TopLevelNode, node)
 
+    names: dict[TopLevelNode, set[str]] = defaultdict(set)
     calls: dict[TopLevelNode, list[TopLevelNode]] = {}
     called_by: dict[TopLevelNode, list[TopLevelNode]] = {}
     has_cycle: dict[TopLevelNode, bool] = defaultdict(lambda: False)
@@ -133,14 +134,16 @@ def create_graphs(
         if not isinstance(assignment, Assignment):
             continue
 
+        top_level_assignment = find_top_level_node(assignment.node)
+        names[top_level_assignment].add(assignment.name)
+
         # Nodes that are not accessed in this file are assumed to be
         # public exports and used by other files. Assumed to be important,
         # so they sort to the top of the file.
         if len(assignment.references) == 0:
-            first_access[find_top_level_node(assignment.node)] = (0, 0)
+            first_access[top_level_assignment] = (0, 0)
 
         for access in assignment.references:
-            top_level_assignment = find_top_level_node(assignment.node)
             top_level_access = find_top_level_node(access.node)
 
             # Skip self-edges.
@@ -193,6 +196,7 @@ def create_graphs(
     ordered_nodes = [
         OrderedNode(
             node=node,
+            names=list(names[node]),
             node_type=node_type(node, prev_line_nums[node]),
             num_references=(
                 0

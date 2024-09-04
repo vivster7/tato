@@ -1,4 +1,5 @@
 import argparse
+import os
 from pathlib import Path
 from typing import Optional
 
@@ -48,7 +49,9 @@ class ReorderFileCodemod(codemod.VisitorBasedCodemodCommand):
         )
 
     def __init__(
-        self, context: codemod.CodemodContext, with_index: Optional[str] = None
+        self,
+        context: codemod.CodemodContext,
+        with_index: Optional[str] = None,
     ) -> None:
         super().__init__(context)
         self.with_index = with_index
@@ -68,7 +71,25 @@ class ReorderFileCodemod(codemod.VisitorBasedCodemodCommand):
             topo_sorted_called_by, index, topo_sorted_calls
         )
 
-        return updated_node.with_changes(
-            body=[i.node for i in imports]
-            + [n.node for s in sections for n in s.flatten()]
-        )
+        should_explain = os.environ.get("TATO_DEBUG_EXPLAIN", "") == "1"
+        if should_explain:
+            body = []
+            body.append(_comment("## Section #1: Imports"))
+            body.extend(i.node for i in imports)
+
+            for i, section in enumerate(sections, start=2):
+                body.append(_comment(f"## Section #{i}: Symbols, Classes, Functions"))
+                for n in section.flatten():
+                    commentbody = f"# {n.node_type}, Called by: {['|'.join(x.names) for x in graphs['called_by'][n]]}, Calls: {['|'.join(x.names) for x in graphs['calls'][n]]}, First access: {n.first_access if not n.has_cycle else 'cycle'}, Prev index: {n.prev_body_index}"
+                    body.append(_comment(commentbody))
+                    body.append(n.node)
+        else:
+            body = [i.node for i in imports] + [
+                n.node for s in sections for n in s.flatten()
+            ]
+
+        return updated_node.with_changes(body=body)
+
+
+def _comment(s: str) -> cst.EmptyLine:
+    return cst.EmptyLine(comment=cst.Comment(s))

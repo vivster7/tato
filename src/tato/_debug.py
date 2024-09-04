@@ -1,6 +1,7 @@
 import functools
 import time
 from contextlib import contextmanager
+from typing import Callable
 
 import libcst as cst
 
@@ -24,7 +25,7 @@ def measure_time(header: str):
         print(f"{'=' * (len(header) + 10)}\n")
 
 
-def measure_fn_time(func):
+def measure_fn_time(func: Callable) -> Callable:
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
         header = func.__name__

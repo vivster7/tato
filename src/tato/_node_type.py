@@ -16,6 +16,9 @@ class NodeType(enum.IntEnum):
     CLASS = 4
     FUNCTION = 5
 
+    def __str__(self) -> str:
+        return self.name
+
 
 def node_type(node: TopLevelNode, old_module_index: Optional[int] = None) -> NodeType:
     if isinstance(node, cst.SimpleStatementLine):

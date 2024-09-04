@@ -8,6 +8,8 @@ class OrderedNode:
     """Information needed to order TopLevelNodes."""
 
     node: TopLevelNode
+    # A node typically has 1 name, but it could have multiple (e.g. `if True: A = 1 else: B = 1`)
+    names: list[str]
     node_type: NodeType
     # Number of times a node is referenced throughout a package. Requires the
     # package has been indexed with `tato index <path>`.
