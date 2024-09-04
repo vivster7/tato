@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 
 from tato._node_type import NodeType, TopLevelNode
+from tato._skipcompare import SKIP, SkipCompare
 
 
 @dataclass(frozen=True)
@@ -35,14 +36,16 @@ class OrderedNode:
     def __lt__(self, other: "OrderedNode") -> bool:
         return self._as_tuple() < other._as_tuple()
 
-    def _as_tuple(self) -> tuple:
+    def _as_tuple(self) -> SkipCompare:
         if self.node_type == NodeType.IMPORT:
             # Try and keep imports sorted by their previous location.
-            return (self.node_type, self.prev_body_index)
+            return SkipCompare((self.node_type, SKIP, SKIP, self.prev_body_index))
         else:
-            return (
-                self.node_type,
-                -1 * self.num_references,  # more reference should come first
-                self.first_access if not self.has_cycle else 0,
-                self.prev_body_index,
+            return SkipCompare(
+                (
+                    self.node_type,
+                    -1 * self.num_references,  # more reference should come first
+                    self.first_access if not self.has_cycle else SKIP,
+                    self.prev_body_index,
+                )
             )
