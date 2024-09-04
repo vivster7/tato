@@ -31,33 +31,43 @@ it's often much better than random layouts.
 
 ## Motivation
 
-In large, mature codebases, it's common to encounter files that lack a coherent
-structure. While the initial version of a file may have been crafted with care
-and logical organization, the structure often erodes over time.
+In large, mature codebases, it’s common to encounter files that lack a coherent
+structure. While the initial version of a file may have been thoughtfully 
+crafted with a logical organization, this structure often erodes over time. 
+(There are many reasons for this erosion, but that’s a topic for another time.)
 
-Tato offers a reset button. It provides consistency by deterministically 
-organizing the file. It's probably not the optimal layout, but the consistency
+Tato offers a reset button, providing consistency by deterministically 
+organizing the file. While it may not be the optimal layout, this consistency
 should reduce the cognitive load required to understand the code.
-
 
 ## Layout details
 
 Tato organizes files into four main sections:
 
-1. Imports
-2. Constants
-3. Classes
-4. Functions
+1.	Imports
+2.	Constants
+3.	Classes
+4.	Functions
 
-**Imports:** Tato preserves the original import order, deferring to specialized tools like isort or ruff for import sorting.
+**Imports:** Tato preserves the original import order, leaving the task of 
+sorting to specialized tools like isort or ruff.
 
-**Constants:** Moved to the top of the file, constants typically have brief definitions and serve as key control points for program behavior.
+**Constants:** Constants are moved to the top of the file. Typically, these have
+brief definitions and act as key control points for program behavior.
 
-**Classes:** Arranged according to their inheritance hierarchy, with base classes appearing first.
+**Classes:** Classes are arranged according to their inheritance hierarchy, with
+base classes appearing first.
 
-**Functions:** Placed in the final section and sorted by call hierarchy. This ordering puts the `main()` function first, so the most important functions are at the top.
+**Functions:** Functions are placed in the final section and sorted by call 
+hierarchy. This order places the `main()` function first, ensuring that the most 
+important functions appear at the top.
 
-### Handling Interdependencies:
-In many cases, strict adherence to this four-section layout may not be possible due to interdependencies. For instance, a constant might rely on a class or function definition. In such situations, Tato will elevate the necessary definitions to maintain file validity. These elevated definitions form valid subsections of (constants, classes, functions), though most fields in these subsections are typically empty.
+### Handling Interdependencies
+Strict adherence to this four-section layout may not always be possible due to 
+interdependencies. For example, a constant might depend on a class or function 
+definition. In such cases, Tato will elevate the necessary definitions to 
+maintain file validity. These elevated definitions form valid subsections 
+(constants, classes, functions), although most fields in these subsections are
+typically empty.
 
-It's probably a good sign to break up a file if it has too many subsections.
+If a file has too many subsections, it’s likely a sign that it should be broken up.
