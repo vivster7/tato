@@ -10,39 +10,10 @@ tato formats the organization/layout of a file. It organizes the order of
 functions/classes/symbols according to their dependency structure.
 
 Here's a (contrived) example to illustrate the idea
-```py
-## Before running `tato`
-def _stripped_str_to_int(s):
-    return int(s.strip())
-
-import random
-def jumble(string):
-    return random.choice(_stripped_str_to_int(string))
-
-MAGIC_NUMBER = 42
-class Vegetable:
-    ...
-
-class Potato(Vegetable):
-    expiration_days = MAGIC_NUMBER
+<img width="971" alt="image" src="https://github.com/user-attachments/assets/f3d41f13-af5b-483d-a848-8475d0c63fe5">
 
 
-## After running `tato`
-import random
 
-MAGIC_NUMBER = 42
-class Vegetable:
-    ...
-
-class Potato(Vegetable):
-    expiration_days = MAGIC_NUMBER
-
-def jumble(string):
-    return random.choice(_stripped_str_to_int(string))
-
-def _stripped_str_to_int(s):
-    return int(s.strip())
-```
 
 ## Quick start
 
