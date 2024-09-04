@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "tato"
 dynamic = ["version"]
-description = 'Autoformatted file layout using sections (imports, constants, classes, functions).'
+description = 'Python file layout formatter.'
 readme = "README.md"
 requires-python = ">=3.8"
 license = "MIT"
@@ -14,7 +14,7 @@ authors = [
   { name = "Vivek Dasari", email = "vivster7@gmail.com" },
 ]
 classifiers = [
-  "Development Status :: 3 - Alpha",
+  "Development Status :: 4 - Beta",
   "Programming Language :: Python",
   "Programming Language :: Python :: 3.8",
   "Programming Language :: Python :: 3.9",

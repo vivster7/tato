@@ -5,9 +5,9 @@
 
 -----
 
-Tato is an autoformatter for Python files. In contrast to other autoformatters,
-tato formats the organization/layout of a file. It tries to organize files into
-four sections: imports, constants, classes, and functions.
+Tato is Python file layout formatter. In contrast to other autoformatters,
+tato only formats the organization/layout of a file. It tries to organize files
+into four sections: imports, constants, classes, and functions.
 
 Here's a (contrived) example to illustrate the idea
 <img width="971" 
@@ -50,7 +50,7 @@ Tato organizes files into four main sections:
 4.	Functions
 
 **Imports:** Tato preserves the original import order, leaving the task of 
-sorting to specialized tools like isort or ruff.
+sorting to tools like isort or ruff.
 
 **Constants:** Constants are moved to the top of the file. Typically, these have
 brief definitions and act as key control points for program behavior.
@@ -70,4 +70,5 @@ maintain file validity. These elevated definitions form valid subsections
 (constants, classes, functions), although most fields in these subsections are
 typically empty.
 
-If a file has too many subsections, it’s likely a sign that it should be broken up.
+If a file has too many subsections, it’s likely a sign that it should be broken
+ up.
