@@ -5,7 +5,7 @@
 
 -----
 
-Tato is Python file layout formatter. In contrast to other autoformatters,
+Tato is a Python file layout formatter. In contrast to other autoformatters,
 tato only formats the organization/layout of a file. It tries to organize files
 into four sections: imports, constants, classes, and functions.
 
